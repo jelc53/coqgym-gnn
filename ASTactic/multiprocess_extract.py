@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# Author: danjenson
-
 import argparse
+import asyncio
 import json
 import multiprocessing as mp
 import subprocess
@@ -15,6 +14,39 @@ def rage(n_cpu: int = mp.cpu_count()):
     cmds = [f"python extract_proof_steps.py --filter {task}" for task in tasks]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)
+
+
+def x(cmd, check=True, echo=True):
+    "execute command streaming stdin, stdout, and stderr"
+    if echo:
+        p(cmd)
+    loop = asyncio.new_event_loop()
+    return_code = loop.run_until_complete(_x(cmd))
+    if check and return_code:
+        q(f'"{cmd}" failed!')
+
+
+async def _x(cmd):
+    pipe = await asyncio.create_subprocess_shell(
+        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    await asyncio.wait(
+        [
+            asyncio.create_task(_stream(pipe.stdout)),
+            asyncio.create_task(_stream(pipe.stderr)),
+        ]
+    )
+    return await pipe.wait()
+
+
+async def _stream(stream):
+    "stream output"
+    while True:
+        line = await stream.readline()
+        if line:
+            p("\t" + line.decode("utf-8").strip())
+        else:
+            break
 
 
 def x_output(cmd, echo=True):
