@@ -101,7 +101,9 @@ class TermEncoder(gnn.MessagePassing):
                 x = F.dropout(x, training=self.training)
                 x = self.conv2(x, edge_index)
                 x = x.flatten()
-                reshaper = nn.Linear(len(x), self.opts.term_embedding_dim)
+                reshaper = nn.Linear(len(x), self.opts.term_embedding_dim).to(
+                    self.opts.device
+                )
                 x = reshaper(x)
 
             embeddings.append(x)
