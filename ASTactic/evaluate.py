@@ -1,24 +1,27 @@
-import torch
-import numpy as np
-import random
-from glob import glob
 import argparse
 import json
+import multiprocessing as mp
 import os
+import random
 import sys
+from glob import glob
+
+import numpy as np
+import torch
 
 sys.setrecursionlimit(100000)
 sys.path.append(os.path.normpath(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(
     os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
 )
+import pdb
 from hashlib import md5
-from utils import log
-from progressbar import ProgressBar
+
 from agent import Agent
 from models.prover import Prover
-import pdb
+from progressbar import ProgressBar
 
+from utils import log
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -109,12 +112,17 @@ if __name__ == "__main__":
 
     print(files)
     results = []
-    bar = ProgressBar(max_value=len(files))
-    for i, f in enumerate(files):
-        print("file: ", f)
-        # print('cuda memory allocated before file: ', torch.cuda.memory_allocated(opts.device), file=sys.stderr)
-        results.extend(agent.evaluate(f, opts.proof))
-        bar.update(i)
+    # NOTE(danj): old, non-mp code
+    # bar = ProgressBar(max_value=len(files))
+    # for i, f in enumerate(files):
+    #     print("file: ", f)
+    #     # print('cuda memory allocated before file: ', torch.cuda.memory_allocated(opts.device), file=sys.stderr)
+    #     results.extend(agent.evaluate(f, opts.proof))
+    #     bar.update(i)
+    # NOTE(danj): this mp code doesn't work with filtering
+    agent_eval = lambda f: agent.evaluate(f, None)
+    with mp.Pool(mp.cpu_count()) as p:
+        results = p.map(agent_eval, files)
 
     oup_dir = os.path.join(opts.output_dir, opts.eval_id)
     if not os.path.exists(oup_dir):
