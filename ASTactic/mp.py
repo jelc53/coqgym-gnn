@@ -92,8 +92,8 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog=argv[0], formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("-ep", "--extract_proofs")
-    parser.add_argument("-t", "--evaluate_model")
+    parser.add_argument("-ep", "--extract_proofs", action='store_true')
+    parser.add_argument("-t", "--evaluate_model", action='store_true')
     parser.add_argument("-n_cpu", default=mp.cpu_count())
     return parser.parse_args(argv[1:])
 
