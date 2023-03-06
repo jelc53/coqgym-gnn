@@ -21,7 +21,7 @@ def mp_evaluate(n_cpu):
 def rage(cmd, splits, n_cpu: int = mp.cpu_count()):
     with open("../projs_split.json") as f:
         d = json.load(f)
-    tasks = it.chain(*[d[split] for split in splits])
+    tasks = it.chain(*[d[f"projs_{split}"] for split in splits])
     cmds = [cmd.format(task=task) for task in tasks]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)
@@ -93,8 +93,8 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog=argv[0], formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("-ep", "--extract_proofs", action='store_true')
-    parser.add_argument("-t", "--evaluate_model", action='store_true')
+    parser.add_argument("-ep", "--extract_proofs", action="store_true")
+    parser.add_argument("-t", "--evaluate_model", action="store_true")
     parser.add_argument("-n_cpu", default=mp.cpu_count())
     return parser.parse_args(argv[1:])
 
