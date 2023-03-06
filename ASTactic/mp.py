@@ -7,11 +7,21 @@ import subprocess
 import sys
 
 
-def rage(n_cpu: int = mp.cpu_count()):
+def mp_extract_proofs(n_cpu):
+    cmd = "python extract_proof_steps.py --filter {task}"
+    rage(cmd, ["train", "valid", "test"], n_cpu)
+
+
+def mp_evaluate(n_cpu):
+    cmd = "python evaluate.py ours+hammer ours+hammer-TEST --path runs/astactic/checkpoints/model_003.pth --filter {task}"
+    rage(cmd, ["test"], n_cpu)
+
+
+def rage(cmd, splits, n_cpu: int = mp.cpu_count()):
     with open("../projs_split.json") as f:
         d = json.load(f)
-    tasks = d["projs_train"] + d["projs_valid"] + d["projs_test"]
-    cmds = [f"python extract_proof_steps.py --filter {task}" for task in tasks]
+    tasks = [d[split] for split in splits]
+    cmds = [cmd.format(task=task) for task in tasks]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)
 
@@ -82,10 +92,15 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog=argv[0], formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+    parser.add_argument("-ep", "--extract_proofs")
+    parser.add_argument("-t", "--evaluate_model")
     parser.add_argument("-n_cpu", default=mp.cpu_count())
     return parser.parse_args(argv[1:])
 
 
 if __name__ == "__main__":
     args = parse_args(sys.argv)
-    rage(args.n_cpu)
+    if args.extract_proofs:
+        mp_extract_proofs(args.n_cpu)
+    elif args.evaluate_model:
+        mp_evaluate(args.n_cpu)
