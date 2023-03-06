@@ -103,26 +103,24 @@ if __name__ == "__main__":
                 glob(os.path.join(opts.datapath, "%s/**/*.json" % proj), recursive=True)
             )
 
+    # NOTE(danj): broken OG code
+    # if opts.filter:
+    #     files = [
+    #         f
+    #         for f in files
+    #         if md5(f.encode("utf-8")).hexdigest().startswith(opts.filter)
+    #     ]
     if opts.filter:
-        files = [
-            f
-            for f in files
-            if md5(f.encode("utf-8")).hexdigest().startswith(opts.filter)
-        ]
+        files = [f for f in files if f.stratswith(opts.filter)]
 
     print(files)
     results = []
-    # NOTE(danj): old, non-mp code
-    # bar = ProgressBar(max_value=len(files))
-    # for i, f in enumerate(files):
-    #     print("file: ", f)
-    #     # print('cuda memory allocated before file: ', torch.cuda.memory_allocated(opts.device), file=sys.stderr)
-    #     results.extend(agent.evaluate(f, opts.proof))
-    #     bar.update(i)
-    # NOTE(danj): this mp code doesn't work with filtering
-    agent_eval = lambda f: agent.evaluate(f, None)
-    with mp.Pool(mp.cpu_count()) as p:
-        results = p.map(agent_eval, files)
+    bar = ProgressBar(max_value=len(files))
+    for i, f in enumerate(files):
+        print("file: ", f)
+        # print('cuda memory allocated before file: ', torch.cuda.memory_allocated(opts.device), file=sys.stderr)
+        results.extend(agent.evaluate(f, opts.proof))
+        bar.update(i)
 
     oup_dir = os.path.join(opts.output_dir, opts.eval_id)
     if not os.path.exists(oup_dir):
