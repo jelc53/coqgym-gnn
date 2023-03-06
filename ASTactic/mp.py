@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import itertools as it
 import json
 import multiprocessing as mp
 import subprocess
@@ -20,7 +21,7 @@ def mp_evaluate(n_cpu):
 def rage(cmd, splits, n_cpu: int = mp.cpu_count()):
     with open("../projs_split.json") as f:
         d = json.load(f)
-    tasks = [d[split] for split in splits]
+    tasks = it.chain(*[d[split] for split in splits])
     cmds = [cmd.format(task=task) for task in tasks]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)
