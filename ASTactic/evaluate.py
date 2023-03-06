@@ -111,7 +111,7 @@ if __name__ == "__main__":
     #         if md5(f.encode("utf-8")).hexdigest().startswith(opts.filter)
     #     ]
     if opts.filter:
-        files = [f for f in files if f.stratswith(opts.filter)]
+        files = [f for f in files if f.startswith(opts.filter)]
 
     print(files)
     results = []
