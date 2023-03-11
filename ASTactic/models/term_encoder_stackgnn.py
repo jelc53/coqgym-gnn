@@ -16,6 +16,64 @@ from torch_sparse import SparseTensor, set_diag
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
 
+nonterminals = [
+    "constr__constr",
+    "constructor_rel",
+    "constructor_var",
+    "constructor_meta",
+    "constructor_evar",
+    "constructor_sort",
+    "constructor_cast",
+    "constructor_prod",
+    "constructor_lambda",
+    "constructor_letin",
+    "constructor_app",
+    "constructor_const",
+    "constructor_ind",
+    "constructor_construct",
+    "constructor_case",
+    "constructor_fix",
+    "constructor_cofix",
+    "constructor_proj",
+    "constructor_ser_evar",
+    "constructor_prop",
+    "constructor_set",
+    "constructor_type",
+    "constructor_ulevel",
+    "constructor_vmcast",
+    "constructor_nativecast",
+    "constructor_defaultcast",
+    "constructor_revertcast",
+    "constructor_anonymous",
+    "constructor_name",
+    "constructor_constant",
+    "constructor_mpfile",
+    "constructor_mpbound",
+    "constructor_mpdot",
+    "constructor_dirpath",
+    "constructor_mbid",
+    "constructor_instance",
+    "constructor_mutind",
+    "constructor_letstyle",
+    "constructor_ifstyle",
+    "constructor_letpatternstyle",
+    "constructor_matchstyle",
+    "constructor_regularstyle",
+    "constructor_projection",
+    "bool",
+    "int",
+    "names__label__t",
+    "constr__case_printing",
+    "univ__universe__t",
+    "constr__pexistential___constr__constr",
+    "names__inductive",
+    "constr__case_info",
+    "names__constructor",
+    "constr__prec_declaration___constr__constr____constr__constr",
+    "constr__pfixpoint___constr__constr____constr__constr",
+    "constr__pcofixpoint___constr__constr____constr__constr",
+]
+
 
 class TermEncoder(torch.nn.Module):  # StackGNN
     def __init__(self, args, emb=True):
@@ -25,7 +83,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         self.input_dim = args.term_embedding_dim
         self.hidden_dim = args.term_embedding_dim
         self.output_dim = args.term_embedding_dim
-        
+
         conv_model = self.build_conv_model(args.model_type)
         self.convs = nn.ModuleList()
         self.convs.append(conv_model(self.input_dim, self.hidden_dim))
@@ -42,7 +100,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         self.num_layers = args.num_layers
 
         self.emb = emb
-     
+
     def build_conv_model(self, model_type):
         if model_type == 'GraphSage':
             return GraphSage
@@ -59,7 +117,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
     def forward(self, data):
         """"""
         x, edge_index, batch = data.x, data.edge_index, data.batch
-          
+
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)
             x = F.relu(x)
