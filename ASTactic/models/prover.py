@@ -20,14 +20,32 @@ class Prover(nn.Module):
         self.term_encoder = TermEncoder(opts)
 
     def embed_terms(self, environment, local_context, goal):
-        all_asts = list(
-            chain(
-                [env["ast"] for env in chain(*environment)],
-                [context["ast"] for context in chain(*local_context)],
-                goal,
+        if 'gnn' in self.opts.encoder_model: # Use GNN model to encode terms
+            ...
+            all_x = list(
+                chain(
+                    [env["x"] for env in chain(*environment)],
+                    [context["x"] for context in chain(*local_context)],
+                    goal["x"]
+                )
             )
-        )
-        all_embeddings = self.term_encoder(all_asts)
+            all_edge_index = list(
+                chain(
+                    [env["edge_index"] for env in chain(*environment)],
+                    [context["edge_index"] for context in chain(*local_context)],
+                    goal["edge_index"]
+                )
+            )
+            all_embeddings = self.term_encoder(all_x, all_edge_index)
+        else:
+            all_asts = list(
+                chain(
+                    [env["ast"] for env in chain(*environment)],
+                    [context["ast"] for context in chain(*local_context)],
+                    goal["ast"],
+                )
+            )
+            all_embeddings = self.term_encoder(all_asts)
 
         batchsize = len(environment)
         environment_embeddings = []
@@ -119,7 +137,7 @@ class Prover(nn.Module):
         }
         goal = {
             "embeddings": goal_embeddings,
-            "quantified_idents": goal.quantified_idents,
+            "quantified_idents": goal["ast"].quantified_idents,
         }
         asts = self.tactic_decoder.beam_search(environment, local_context, goal)
         return asts

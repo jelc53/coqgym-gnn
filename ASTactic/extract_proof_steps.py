@@ -8,7 +8,7 @@ sys.setrecursionlimit(100000)
 sys.path.append(
     os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
 )
-from gallina import GallinaTermParser
+from gallina import GallinaTermParser, traverse_postorder
 from lark.exceptions import UnexpectedCharacters, ParseError
 from utils import iter_proofs, SexpCache
 import argparse
@@ -16,25 +16,35 @@ from hashlib import md5
 from agent import filter_env
 import pdb
 
+from models.non_terminals import nonterminals
+from models.gnn_utils import create_edge_index, create_x
+import torch
+
 
 term_parser = GallinaTermParser(caching=True)
 sexp_cache = SexpCache("../sexp_cache", readonly=True)
 
 
 def parse_goal(g):
+    goal_tree = term_parser.parse(sexp_cache[g["sexp"]])
     goal = {
         "id": g["id"],
         "text": g["type"],
-        "ast": term_parser.parse(sexp_cache[g["sexp"]]),
+        "ast": goal_tree,
+        "x": create_x(goal_tree),
+        "edge_index": create_edge_index(goal_tree),
     }
     local_context = []
     for i, h in enumerate(g["hypotheses"]):
         for ident in h["idents"]:
+            context_tree = term_parser.parse(sexp_cache[h["sexp"]])
             local_context.append(
                 {
                     "ident": ident,
                     "text": h["type"],
-                    "ast": term_parser.parse(sexp_cache[h["sexp"]]),
+                    "ast": context_tree,
+                    "x": create_x(context_tree),
+                    "edge_index": create_edge_index(context_tree),
                 }
             )
     return local_context, goal
@@ -59,7 +69,6 @@ def tactic2actions(tac_str):
     tree.traverse_pre(gather_actions)
     return actions
 
-
 projs_split = json.load(open("../projs_split.json"))
 proof_steps = {"train": [], "valid": [], "test": []}
 
@@ -73,8 +82,10 @@ def process_proof(filename, proof_data):
         is_synthetic = False
     global num_discarded
 
-    if args.filter != filename.split(os.path.sep)[2]
-        return  # skip proof folders not included in filter flag
+    # if args.filter != filename.split(os.path.sep)[2]:
+    #     return  # skip proof folders not included in filter flag
+    if not md5(filename.encode()).hexdigest().startswith(args.filter):
+        return
 
     proj = filename.split(os.path.sep)[2]
     if proj in projs_split["projs_train"]:

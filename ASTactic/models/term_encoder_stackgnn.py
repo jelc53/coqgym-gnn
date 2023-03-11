@@ -16,7 +16,6 @@ from torch_sparse import SparseTensor, set_diag
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
 
-from non_terminals import nonterminals
 
 
 class TermEncoder(torch.nn.Module):  # StackGNN
@@ -58,9 +57,9 @@ class TermEncoder(torch.nn.Module):  # StackGNN
             # and also the first nn.Linear(hidden_dim * num_heads, hidden_dim) in post-message-passing.
             return GAT
 
-    def forward(self, data):
+    def forward(self, x, edge_index, batch):
         """"""
-        x, edge_index, batch = data.x, data.edge_index, data.batch
+        # x, edge_index, batch = data.x, data.edge_index, data.batch
 
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)

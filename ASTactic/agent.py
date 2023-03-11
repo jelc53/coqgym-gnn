@@ -16,6 +16,8 @@ import gc
 from copy import deepcopy
 from time import time
 
+from models.gnn_utils import create_edge_index, create_x
+
 
 def action_seq_loss(logits_batch, actions_batch, opts):
     assert len(logits_batch) == len(actions_batch)
@@ -40,7 +42,8 @@ def filter_env(env):
     ]
     for const in toplevel_consts[-10:]:
         ast = sexp_cache[const["sexp"]]
-        filtered_env.append({"qualid": const["qualid"], "ast": term_parser.parse(ast)})
+        env_ast = term_parser.parse(ast)
+        filtered_env.append({"qualid": const["qualid"], "ast": env_ast, "x": create_x(env_ast), "edge_index": create_edge_index(env_ast)})
     return filtered_env
 
 
@@ -52,8 +55,7 @@ def parse_goal(g):
             local_context.append(
                 {"ident": ident, "text": h["type"], "ast": term_parser.parse(h["sexp"])}
             )
-    return local_context, goal["ast"]
-
+    return local_context, goal
 
 def print_single_goal(g):
     for h in g["hypotheses"]:

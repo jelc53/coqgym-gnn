@@ -41,18 +41,23 @@ class ProofStepsData(Dataset):
             'env': [{
                 'qualid': STR,
                 'ast': LARK.TREE.TREE,
+                'x': ...
+                'edge_index': ...
             }]
             'local_context': [{
                 'ident': STR,
                 'ast': LARK.TREE.TREE,
+                'x': ...
+                'edge_index': ...
             }],
+            TODO: Change goal object repr
             'goal': LARK.TREE.TREE,
             'tactic_actions':  [INT|STR],
             'tactic_str': STR,
         }
         """
         proof_step = pickle.load(open(self.proof_steps[idx], "rb"))
-        proof_step["goal"] = proof_step["goal"]["ast"]
+        # proof_step["goal"] = proof_step["goal"]["ast"]
         proof_step["tactic_actions"] = proof_step["tactic"]["actions"]
         proof_step["tactic_str"] = proof_step["tactic"]["text"]
         del proof_step["tactic"]

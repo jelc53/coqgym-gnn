@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--datapath", type=str, default="proof_steps/")
     parser.add_argument("--projs_split", type=str, default="../projs_split.json")
     parser.add_argument("--num_epochs", type=int, default=4)
+    parser.add_argument("--encoder_model", type=str, default="treelstm", help="treelstm or gnn, defines the encoder network used.")
     parser.add_argument("--resume", type=str, help="the model checkpoint to resume")
     parser.add_argument(
         "--no_validation", action="store_true", help="no validation is performed"
