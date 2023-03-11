@@ -12,12 +12,30 @@ sys.path.append(os.path.abspath("."))
 from time import time
 
 
+
 class Prover(nn.Module):
     def __init__(self, opts):
         super().__init__()
         self.opts = opts
         self.tactic_decoder = TacticDecoder(CFG(opts.tac_grammar, "tactic_expr"), opts)
         self.term_encoder = TermEncoder(opts)
+
+
+    def create_batch(self, environment, local_context, goal):
+        out = torch.tensor([], device=self.opts.device)
+
+        idx = 0
+        for env in chain(*environment):
+            torch.hstack((out, torch.ones(len(env["x"])*idx, device=self.opts.device)))
+            idx += 1
+
+        for context in chain(*local_context):
+            torch.hstack((out, torch.ones(len(context["x"])*idx, device=self.opts.device)))
+            idx += 1
+
+        torch.hstack((out, torch.ones(len(goal["x"])*idx, device=self.opts.device)))
+
+        return out
 
     def embed_terms(self, environment, local_context, goal):
         if 'gnn' in self.opts.encoder_model: # Use GNN model to encode terms
@@ -36,7 +54,8 @@ class Prover(nn.Module):
                     goal["edge_index"]
                 )
             )
-            all_embeddings = self.term_encoder(all_x, all_edge_index)
+            batch = self.create_batch(environment, local_context, goal)
+            all_embeddings = self.term_encoder(all_x, all_edge_index, batch)
         else:
             all_asts = list(
                 chain(
