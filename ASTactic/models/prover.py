@@ -26,14 +26,14 @@ class Prover(nn.Module):
 
         idx = 0
         for env in chain(*environment):
-            torch.hstack((out, torch.ones(len(env["x"])*idx, device=self.opts.device)))
+            out = torch.hstack((out, torch.ones(len(env["x"])*idx, device=self.opts.device)))
             idx += 1
 
         for context in chain(*local_context):
-            torch.hstack((out, torch.ones(len(context["x"])*idx, device=self.opts.device)))
+            out = torch.hstack((out, torch.ones(len(context["x"])*idx, device=self.opts.device)))
             idx += 1
 
-        torch.hstack((out, torch.ones(len(goal["x"])*idx, device=self.opts.device)))
+        out = torch.hstack((out, torch.ones(len(goal["x"])*idx, device=self.opts.device)))
 
         return out
 
