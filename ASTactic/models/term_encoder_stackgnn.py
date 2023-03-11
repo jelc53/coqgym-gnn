@@ -16,63 +16,7 @@ from torch_sparse import SparseTensor, set_diag
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
 
-nonterminals = [
-    "constr__constr",
-    "constructor_rel",
-    "constructor_var",
-    "constructor_meta",
-    "constructor_evar",
-    "constructor_sort",
-    "constructor_cast",
-    "constructor_prod",
-    "constructor_lambda",
-    "constructor_letin",
-    "constructor_app",
-    "constructor_const",
-    "constructor_ind",
-    "constructor_construct",
-    "constructor_case",
-    "constructor_fix",
-    "constructor_cofix",
-    "constructor_proj",
-    "constructor_ser_evar",
-    "constructor_prop",
-    "constructor_set",
-    "constructor_type",
-    "constructor_ulevel",
-    "constructor_vmcast",
-    "constructor_nativecast",
-    "constructor_defaultcast",
-    "constructor_revertcast",
-    "constructor_anonymous",
-    "constructor_name",
-    "constructor_constant",
-    "constructor_mpfile",
-    "constructor_mpbound",
-    "constructor_mpdot",
-    "constructor_dirpath",
-    "constructor_mbid",
-    "constructor_instance",
-    "constructor_mutind",
-    "constructor_letstyle",
-    "constructor_ifstyle",
-    "constructor_letpatternstyle",
-    "constructor_matchstyle",
-    "constructor_regularstyle",
-    "constructor_projection",
-    "bool",
-    "int",
-    "names__label__t",
-    "constr__case_printing",
-    "univ__universe__t",
-    "constr__pexistential___constr__constr",
-    "names__inductive",
-    "constr__case_info",
-    "names__constructor",
-    "constr__prec_declaration___constr__constr____constr__constr",
-    "constr__pfixpoint___constr__constr____constr__constr",
-    "constr__pcofixpoint___constr__constr____constr__constr",
-]
+from non_terminals import nonterminals
 
 
 class TermEncoder(torch.nn.Module):  # StackGNN
@@ -93,7 +37,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
 
         # post-message-passing
         self.post_mp = nn.Sequential(
-            nn.Linear(args.heads * self.hidden_dim, self.hidden_dim), nn.Dropout(args.dropout), 
+            nn.Linear(args.heads * self.hidden_dim, self.hidden_dim), nn.Dropout(args.dropout),
             nn.Linear(self.hidden_dim, self.output_dim))
 
         self.dropout = args.dropout
@@ -105,12 +49,12 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         if model_type == 'GraphSage':
             return GraphSage
         elif model_type == 'GAT':
-            # When applying GAT with num heads > 1, you need to modify the 
+            # When applying GAT with num heads > 1, you need to modify the
             # input and output dimension of the conv layers (self.convs),
             # to ensure that the input dim of the next layer is num heads
             # multiplied by the output dim of the previous layer.
             # HINT: In case you want to play with multiheads, you need to change the for-loop that builds up self.convs to be
-            # self.convs.append(conv_model(hidden_dim * num_heads, hidden_dim)), 
+            # self.convs.append(conv_model(hidden_dim * num_heads, hidden_dim)),
             # and also the first nn.Linear(hidden_dim * num_heads, hidden_dim) in post-message-passing.
             return GAT
 
@@ -136,7 +80,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
 
 class GraphSage(MessagePassing):
     """"""
-    def __init__(self, in_channels, out_channels, normalize=True, bias=False, **kwargs):  
+    def __init__(self, in_channels, out_channels, normalize=True, bias=False, **kwargs):
         super(GraphSage, self).__init__(**kwargs)
 
         self.in_channels = in_channels
@@ -158,7 +102,7 @@ class GraphSage(MessagePassing):
         out = self.lin_l(x) + self.lin_r(h_v)
 
         if self.normalize:  # L-2 normalization if set to true
-          out = torch.nn.functional.normalize(out, p=2.0)   
+          out = torch.nn.functional.normalize(out, p=2.0)
 
         return out
 
@@ -212,9 +156,9 @@ class GAT(MessagePassing):
         alpha_r = (x_r * self.att_r).sum(dim=-1)
 
         # message propagation
-        out = self.propagate(edge_index=edge_index, 
-                             alpha=(alpha_l, alpha_r), 
-                             x=(x_l, x_r), 
+        out = self.propagate(edge_index=edge_index,
+                             alpha=(alpha_l, alpha_r),
+                             x=(x_l, x_r),
                              size=size)
 
         # post-processing
