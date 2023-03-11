@@ -40,6 +40,10 @@ def parse_args():
     parser.add_argument("--filter", type=str)
 
     # term encoder
+    parser.add_argument("--model_type", type=str, default="GraphSAGE")
+    parser.add_argument("--dropout", type=int, default=0.5)
+    parser.add_argument("--num_layers", type=int, default=2)
+    parser.add_argument("--heads", type=int, default=1)
     parser.add_argument("--term_embedding_dim", type=int, default=256)
 
     # tactic decoder
