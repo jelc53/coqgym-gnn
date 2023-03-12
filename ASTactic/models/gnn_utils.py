@@ -1,7 +1,7 @@
 from gallina import traverse_postorder
 import torch
 
-from non_terminals import nonterminals
+from .non_terminals import nonterminals
 
 
 def create_edge_index(ast):
@@ -29,6 +29,12 @@ def create_edge_index(ast):
     return torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
 def create_x(ast):
+    """
+    Creates a feature set per nodes given the AST of the nodes as a lark tree.
+
+    Feature vector is one-hot encoding of nonterminal symbols.
+    Shape: (num_nodes, num_nonterminals)
+    """
     x = []
 
     def callbck(node):
@@ -36,4 +42,4 @@ def create_x(ast):
 
     traverse_postorder(ast, callbck)
 
-    return torch.tensor(x, dtype=torch.float)
+    return torch.nn.functional.one_hot(torch.tensor(x, dtype=torch.float), len(nonterminals))

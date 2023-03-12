@@ -43,17 +43,32 @@ def filter_env(env):
     for const in toplevel_consts[-10:]:
         ast = sexp_cache[const["sexp"]]
         env_ast = term_parser.parse(ast)
-        filtered_env.append({"qualid": const["qualid"], "ast": env_ast, "x": create_x(env_ast), "edge_index": create_edge_index(env_ast)})
+        filtered_env.append(
+            {
+                "qualid": const["qualid"],
+                "ast": env_ast,
+                "x": create_x(env_ast),
+                "edge_index": create_edge_index(env_ast),
+            }
+        )
     return filtered_env
 
 
 def parse_goal(g):
-    goal = {"id": g["id"], "text": g["type"], "ast": term_parser.parse(g["sexp"])}
+    goal_ast = term_parser.parse(sexp_cache[g["sexp"]])
+    goal = {"id": g["id"], "text": g["type"], "ast": goal_ast, "x": create_x(goal_ast), "edge_index": create_edge_index(goal_ast)}
     local_context = []
     for i, h in enumerate(g["hypotheses"]):
         for ident in h["idents"]:
+            context_ast = term_parser.parse(sexp_cache[h["sexp"]])
             local_context.append(
-                {"ident": ident, "text": h["type"], "ast": term_parser.parse(h["sexp"])}
+                {
+                    "ident": ident,
+                    "text": h["type"],
+                    "ast": context_ast,
+                    "x": create_x(context_ast),
+                    "edge_index": create_edge_index(context_ast),
+                }
             )
     return local_context, goal
 
