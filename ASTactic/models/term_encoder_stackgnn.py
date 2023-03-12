@@ -95,13 +95,19 @@ class GraphSage(MessagePassing):
         self.lin_l.reset_parameters()
         self.lin_r.reset_parameters()
 
-    def forward(self, x, edge_index, size = None):
-        """"""
-        h_v = self.propagate(edge_index=edge_index, x=(x, x), size=size)
-        out = self.lin_l(x) + self.lin_r(h_v)
+    def forward(self, x, edge_index, batch, size=None):
+        """"""  #TODO: figure out how to handle multiple asts with batch arg
+        out = torch.tensor([])
+        for idx in batch[-1]:
+            x_i = x[batch == idx]
+            edge_index_i = edge_index[batch == idx]
+            hv_i = self.propagate(edge_index=edge_index_i, x=(x_i, x_i), size=size)
+            out_i = self.lin_l(x_i) + self.lin_r(hv_i)
 
-        if self.normalize:  # L-2 normalization if set to true
-          out = torch.nn.functional.normalize(out, p=2.0)
+            if self.normalize:  # L-2 normalization if set to true
+                out_i = torch.nn.functional.normalize(out, p=2.0)
+
+            out.hstack((out, out_i))
 
         return out
 
