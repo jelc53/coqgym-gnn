@@ -42,4 +42,4 @@ def create_x(ast):
 
     traverse_postorder(ast, callbck)
 
-    return torch.nn.functional.one_hot(torch.tensor(x, dtype=torch.long), len(nonterminals))
+    return torch.tensor(x, dtype=torch.long)
