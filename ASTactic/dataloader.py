@@ -1,10 +1,13 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+# from torch.utils.data import Dataset, DataLoader
 from options import parse_args
 import random
 from progressbar import ProgressBar
 import os
 import sys
+
+from torch_geometric.data import Data, Dataset
+from torch_geometric.loader import DataLoader
 
 sys.setrecursionlimit(100000)
 import pickle
@@ -32,6 +35,9 @@ class ProofStepsData(Dataset):
     def __len__(self):
         return len(self.proof_steps)
 
+    def len(self):
+        return self.__len__()
+
     def __getitem__(self, idx):
         """
         step = {
@@ -41,17 +47,22 @@ class ProofStepsData(Dataset):
             'env': [{
                 'qualid': STR,
                 'ast': LARK.TREE.TREE,
-                'x': ...
-                'edge_index': ...
-            }]
+                'x': TENSOR.TENSOR
+                'edge_index': TENSOR.TENSOR
+            }],
             'local_context': [{
                 'ident': STR,
                 'ast': LARK.TREE.TREE,
-                'x': ...
-                'edge_index': ...
+                'x': TENSOR.TENSOR
+                'edge_index': TENSOR.TENSOR
             }],
-            TODO: Change goal object repr
-            'goal': LARK.TREE.TREE,
+            'goal': {
+                "id": STR,
+                "text": STR,
+                "ast": LARK.TREE.TREE,
+                "x": TENSOR.TENSOR,
+                "edge_index": TENSOR.TENSOR,
+            },
             'tactic_actions':  [INT|STR],
             'tactic_str': STR,
         }
@@ -62,7 +73,10 @@ class ProofStepsData(Dataset):
         proof_step["tactic_str"] = proof_step["tactic"]["text"]
         del proof_step["tactic"]
 
-        return proof_step
+        return Data(**proof_step)
+
+    def get(self, idx):
+        return self.__getitem__(idx)
 
 
 def create_dataloader(split, opts):

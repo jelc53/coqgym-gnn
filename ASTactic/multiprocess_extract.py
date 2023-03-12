@@ -12,7 +12,7 @@ def rage(n_cpu: int = mp.cpu_count()):
     with open("../projs_split.json") as f:
         d = json.load(f)
     tasks = d["projs_train"] + d["projs_valid"] + d["projs_test"]
-    cmds = [f"python extract_proof_steps.py --filter {task}" for task in tasks]
+    cmds = [f"python extract_proof_steps.py --filter {task} --output ./proof_steps_gnn" for task in tasks]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)
 
@@ -50,10 +50,11 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog=argv[0], formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("-n_cpu", default=mp.cpu_count())
+    parser.add_argument("-n_cpu", default=mp.cpu_count(), type=int)
     return parser.parse_args(argv[1:])
 
 
 if __name__ == "__main__":
     args = parse_args(sys.argv)
+    print(args)
     rage(args.n_cpu)

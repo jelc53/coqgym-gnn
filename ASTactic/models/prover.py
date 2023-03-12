@@ -39,7 +39,6 @@ class Prover(nn.Module):
 
     def embed_terms(self, environment, local_context, goal):
         if 'gnn' in self.opts.encoder_model: # Use GNN model to encode terms
-            ...
             all_x = list(
                 chain(
                     [env["x"] for env in chain(*environment)],
