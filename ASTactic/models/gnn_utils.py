@@ -32,8 +32,7 @@ def create_x(ast):
     """
     Creates a feature set per nodes given the AST of the nodes as a lark tree.
 
-    Feature vector is one-hot encoding of nonterminal symbols.
-    Shape: (num_nodes, num_nonterminals)
+    Shape: (num_nodes, )
     """
     x = []
 
