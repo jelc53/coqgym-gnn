@@ -19,6 +19,9 @@ import pdb
 from models.non_terminals import nonterminals
 from models.gnn_utils import create_edge_index, create_x
 import torch
+import networkx as nx
+from torch_geometric.utils import from_networkx
+import gc
 
 
 term_parser = GallinaTermParser(caching=True)
@@ -75,6 +78,13 @@ proof_steps = {"train": [], "valid": [], "test": []}
 num_discarded = 0
 
 
+def to_nx_graph(term):
+    G = nx.Graph()
+    for i, idx in enumerate(term["x"]):
+        G.add_node(i, nonterminals_idx=idx)
+    G.add_edges_from(term["edge_index"].T.numpy())
+    return G
+
 def process_proof(filename, proof_data):
     if "entry_cmds" in proof_data:
         is_synthetic = True
@@ -125,8 +135,7 @@ def process_proof(filename, proof_data):
         except (UnexpectedCharacters, ParseError) as ex:
             num_discarded += 1
             continue
-        proof_steps[split].append(
-            {
+        proof_step = {
                 "file": filename,
                 "proof_name": proof_data["name"],
                 "n_step": i,
@@ -135,13 +144,43 @@ def process_proof(filename, proof_data):
                 "goal": goal,
                 "tactic": {"text": tac_str, "actions": actions},
             }
-        )
         if is_synthetic:
-            proof_steps[split][-1]["is_synthetic"] = True
-            proof_steps[split][-1]["goal_id"] = proof_data["goal_id"]
-            proof_steps[split][-1]["length"] = proof_data["length"]
+            proof_step["is_synthetic"] = True
+            proof_step["goal_id"] = proof_data["goal_id"]
+            proof_step["length"] = proof_data["length"]
         else:
-            proof_steps[split][-1]["is_synthetic"] = False
+            proof_step["is_synthetic"] = False
+        proof_step["tactic_actions"] = proof_step["tactic"]["actions"]
+        proof_step["tactic_str"] = proof_step["tactic"]["text"]
+        # del proof_step["tactic"]
+
+        # create graphs
+        Gs = []
+        for env in proof_step["env"]:
+            G = to_nx_graph(env)
+            Gs.append(G)
+            # remove so we can add the regular dict to the Data object
+            del env["x"]
+            del env["edge_index"]
+        for lc in proof_step["local_context"]:
+            G = to_nx_graph(lc)
+            Gs.append(G)
+            # remove so we can add the regular dict to the Data object
+            del lc["x"]
+            del lc["edge_index"]
+        Gs.append(to_nx_graph(proof_step["goal"]))
+        del proof_step["goal"]["x"]
+        del proof_step["goal"]["edge_index"]
+        Gu = nx.disjoint_union_all(Gs)
+        G = from_networkx(Gu)
+        # Assign attributes of proof step to Data object
+        for k, v in proof_step.items():
+            G[k] = v
+        proof_steps[split].append(
+            G
+        )
+        del proof_step, Gu, Gs
+        gc.collect()
 
 
 if __name__ == "__main__":

@@ -151,3 +151,4 @@ sexp_cache*
 *.json
 runs/
 proof_steps_gnn/
+proof_steps_gnn_pyg_data/

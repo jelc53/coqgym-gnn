@@ -70,50 +70,13 @@ class ProofStepsData(Dataset):
             'tactic_str': STR,
         }
         """
-        proof_step = pickle.load(open(self.proof_steps[idx], "rb"))
-        # proof_step["goal"] = proof_step["goal"]["ast"]
-        proof_step["tactic_actions"] = proof_step["tactic"]["actions"]
-        proof_step["tactic_str"] = proof_step["tactic"]["text"]
-        # del proof_step["tactic"]
-
-        # create xs
-        xs = [ps["x"] for ps in proof_step["env"]]
-        xs += [lc["x"] for lc in proof_step["local_context"]]
-        xs += [proof_step["goal"]["x"]]
-        # create graphs
-        Gs = []
-        for env in proof_step["env"]:
-            G = to_nx_graph(env)
-            Gs.append(G)
-            # remove so we can add the regular dict to the Data object
-            del env["x"]
-            del env["edge_index"]
-        for lc in proof_step["local_context"]:
-            G = to_nx_graph(lc)
-            Gs.append(G)
-            # remove so we can add the regular dict to the Data object
-            del lc["x"]
-            del lc["edge_index"]
-        Gs.append(to_nx_graph(proof_step["goal"]))
-        del proof_step["goal"]["x"]
-        del proof_step["goal"]["edge_index"]
-        Gu = nx.disjoint_union_all(Gs)
-        G = from_networkx(Gu)
-        # Assign attributes of proof step to Data object
-        for k, v in proof_step.items():
-            G[k] = v
-        return G
+        data = pickle.load(open(self.proof_steps[idx], "rb"))
+        # TODO: Postprocess data so that x is one-hot?
+        return data
 
     def get(self, idx):
         return self.__getitem__(idx)
 
-
-def to_nx_graph(term):
-    G = nx.Graph()
-    for i, idx in enumerate(term["x"]):
-        G.add_node(i, nonterminals_idx=idx)
-    G.add_edges_from(term["edge_index"].T.numpy())
-    return G
 
 
 def create_dataloader(split, opts):
@@ -140,6 +103,7 @@ def create_dataloader(split, opts):
         return batch
 
     ds = ProofStepsData(split, opts)
+    print(ds[0])
     return DataLoader(
         ds,
         opts.batchsize,
@@ -156,4 +120,5 @@ if __name__ == "__main__":
     for i, data_batch in enumerate(loader):
         if i == 0:
             print(data_batch)
+            pickle.dump(data_batch, open('data_batch.pickle', 'wb'))
         bar.update(i)
