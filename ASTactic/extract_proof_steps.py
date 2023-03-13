@@ -1,28 +1,30 @@
-import os
 import json
+import os
 import pickle
-from tac_grammar import CFG, TreeBuilder, NonterminalNode, TerminalNode
 import sys
+
+from tac_grammar import CFG, NonterminalNode, TerminalNode, TreeBuilder
 
 sys.setrecursionlimit(100000)
 sys.path.append(
     os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
 )
-from gallina import GallinaTermParser, traverse_postorder
-from lark.exceptions import UnexpectedCharacters, ParseError
-from utils import iter_proofs, SexpCache
 import argparse
-from hashlib import md5
-from agent import filter_env
-import pdb
-
-from models.non_terminals import nonterminals
-from models.gnn_utils import create_edge_index, create_x
-import torch
-import networkx as nx
-from torch_geometric.utils import from_networkx
 import gc
+import pdb
+from hashlib import md5
 
+import networkx as nx
+import torch
+from agent import filter_env
+from lark.exceptions import ParseError, UnexpectedCharacters
+from models.gnn_utils import create_edge_index, create_x
+from models.non_terminals import nonterminals
+from torch_geometric.data import Batch
+from torch_geometric.utils import from_networkx
+
+from gallina import GallinaTermParser, traverse_postorder
+from utils import SexpCache, iter_proofs
 
 term_parser = GallinaTermParser(caching=True)
 sexp_cache = SexpCache("../sexp_cache", readonly=True)
@@ -72,6 +74,7 @@ def tactic2actions(tac_str):
     tree.traverse_pre(gather_actions)
     return actions
 
+
 projs_split = json.load(open("../projs_split.json"))
 proof_steps = {"train": [], "valid": [], "test": []}
 
@@ -84,6 +87,7 @@ def to_nx_graph(term):
         G.add_node(i, nonterminals_idx=idx)
     G.add_edges_from(term["edge_index"].T.numpy())
     return G
+
 
 def process_proof(filename, proof_data):
     if "entry_cmds" in proof_data:
@@ -136,14 +140,14 @@ def process_proof(filename, proof_data):
             num_discarded += 1
             continue
         proof_step = {
-                "file": filename,
-                "proof_name": proof_data["name"],
-                "n_step": i,
-                "env": env,
-                "local_context": local_context,
-                "goal": goal,
-                "tactic": {"text": tac_str, "actions": actions},
-            }
+            "file": filename,
+            "proof_name": proof_data["name"],
+            "n_step": i,
+            "env": env,
+            "local_context": local_context,
+            "goal": goal,
+            "tactic": {"text": tac_str, "actions": actions},
+        }
         if is_synthetic:
             proof_step["is_synthetic"] = True
             proof_step["goal_id"] = proof_data["goal_id"]
@@ -171,16 +175,11 @@ def process_proof(filename, proof_data):
         Gs.append(to_nx_graph(proof_step["goal"]))
         del proof_step["goal"]["x"]
         del proof_step["goal"]["edge_index"]
-        Gu = nx.disjoint_union_all(Gs)
-        G = from_networkx(Gu)
-        # Assign attributes of proof step to Data object
-        for k, v in proof_step.items():
-            G[k] = v
-        proof_steps[split].append(
-            G
-        )
-        del proof_step, Gu, Gs
-        gc.collect()
+        Gs = [from_networkx(G) for G in Gs]
+        B = Batch(Gs, **proof_steps)
+        torch.save(B, f"{split}/{B['proof_name']}-{B['n_step']:08d}.pt")
+        # proof_steps[split].append(B)
+        # gc.collect()
 
 
 if __name__ == "__main__":
@@ -201,19 +200,19 @@ if __name__ == "__main__":
         args.data_root, process_proof, include_synthetic=False, show_progress=True
     )
 
-    for split in ["train", "valid"]:
-        for i, step in enumerate(proof_steps[split]):
-            dirname = os.path.join(args.output, split)
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
-            if args.filter:
-                pickle.dump(
-                    step,
-                    open(
-                        os.path.join(dirname, "%s-%08d.pickle" % (args.filter, i)), "wb"
-                    ),
-                )
-            else:
-                pickle.dump(step, open(os.path.join(dirname, "%08d.pickle" % i), "wb"))
-
-    print("\nOutput saved to ", args.output)
+    # for split in ["train", "valid"]:
+    #     for i, step in enumerate(proof_steps[split]):
+    #         dirname = os.path.join(args.output, split)
+    #         if not os.path.exists(dirname):
+    #             os.makedirs(dirname)
+    #         if args.filter:
+    #             pickle.dump(
+    #                 step,
+    #                 open(
+    #                     os.path.join(dirname, "%s-%08d.pickle" % (args.filter, i)), "wb"
+    #                 ),
+    #             )
+    #         else:
+    #             pickle.dump(step, open(os.path.join(dirname, "%08d.pickle" % i), "wb"))
+    #
+    # print("\nOutput saved to ", args.output)
