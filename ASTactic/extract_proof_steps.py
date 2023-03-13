@@ -83,8 +83,8 @@ num_discarded = 0
 
 def to_nx_graph(term):
     G = nx.Graph()
-    for i, idx in enumerate(term["x"]):
-        G.add_node(i, nonterminals_idx=idx)
+    for i, x in enumerate(term["x"]):
+        G.add_node(i, x=x)
     G.add_edges_from(term["edge_index"].T.numpy())
     return G
 
@@ -176,7 +176,9 @@ def process_proof(filename, proof_data):
         del proof_step["goal"]["x"]
         del proof_step["goal"]["edge_index"]
         Gs = [from_networkx(G) for G in Gs]
-        B = Batch(Gs, **proof_step)
+        B = Batch.from_data_list(Gs)
+        for k, v in proof_step.items():
+            B[k] = v
         path = os.path.join(
             args.output, split, f"{args.filter}-{B['proof_name']}-{B['n_step']:08d}.pt"
         )
