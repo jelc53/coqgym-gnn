@@ -44,65 +44,32 @@ class Prover(nn.Module):
         return out
 
     def embed_terms(self, batch):
-        environment = batch["env"]
-        local_context = batch["local_context"]
-        goal = batch["goal"]
-        if "gnn" in self.opts.encoder_model:  # Use GNN model to encode terms
-            all_embeddings = self.term_encoder(batch)
-        else:
-            all_asts = list(
-                chain(
-                    [env["ast"] for env in chain(*environment)],
-                    [context["ast"] for context in chain(*local_context)],
-                    goal["ast"],
-                )
-            )
-            all_embeddings = self.term_encoder(all_asts)
 
-        batchsize = len(environment)
-        environment_embeddings = []
-        j = 0
-        for n in range(batchsize):
-            size = len(environment[n])
-            environment_embeddings.append(
-                torch.cat(
-                    [
-                        torch.zeros(size, 3, device=self.opts.device),
-                        all_embeddings[j : j + size],
-                    ],
-                    dim=1,
-                )
-            )
-            environment_embeddings[-1][:, 0] = 1.0
-            j += size
+        # if "gnn" in self.opts.encoder_model:  # Use GNN model to encode terms
+        all_embeddings = self.term_encoder(batch)
 
-        context_embeddings = []
-        for n in range(batchsize):
-            size = len(local_context[n])
-            context_embeddings.append(
-                torch.cat(
-                    [
-                        torch.zeros(size, 3, device=self.opts.device),
-                        all_embeddings[j : j + size],
-                    ],
-                    dim=1,
-                )
-            )
-            context_embeddings[-1][:, 1] = 1.0
-            j += size
+        # reformat for decoder
+        num_envs = len(batch.env['ast'])
+        env_embed = torch.cat(  # environment
+            [torch.zeros(3, device=self.opts.device), all_embeddings[0:num_envs]],
+            dim=0
+        )
 
-        goal_embeddings = []
-        for n in range(batchsize):
-            goal_embeddings.append(
-                torch.cat(
-                    [torch.zeros(3, device=self.opts.device), all_embeddings[j]], dim=0
-                )
-            )
-            goal_embeddings[-1][2] = 1.0
-            j += 1
-        goal_embeddings = torch.stack(goal_embeddings)
+        num_context = len(batch.local_context['ast'])
+        context_embed = torch.cat(  # local context
+            [torch.zeros(3, device=self.opts.device), all_embeddings[num_envs:num_envs+num_context]],
+            dim=0
+        )
 
-        return environment_embeddings, context_embeddings, goal_embeddings
+        goal_embed = torch.cat(  # goal
+            [torch.zeros(3, device=self.opts.device), all_embeddings[-1]],
+            dim=0
+        )
+
+        # update padding references
+        env_embed[:,0], context_embed[:,1], goal_embed[:,2] = 1.0, 1.0, 1.0
+
+        return [env_embed], [context_embed], goal_embed
 
     # def forward(self, environment, local_context, goal, actions, teacher_forcing):
     def forward(self, batch, teacher_forcing):
