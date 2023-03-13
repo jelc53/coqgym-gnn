@@ -139,8 +139,16 @@ class Prover(nn.Module):
         return asts, loss
 
     def beam_search(self, environment, local_context, goal):
+        # TODO(danj/dhuang): update this to convert environment, local_context, goal
+        # need to add the G_step to this method call
+        d = {
+            "env": [environment],
+            "local_context": [local_context],
+            "goal": [goal],
+        }
+        batch = None  # TODO: create this and combine with d
         environment_embeddings, context_embeddings, goal_embeddings = self.embed_terms(
-            [environment], [local_context], [goal]
+            batch
         )
         environment = {
             "idents": [v["qualid"] for v in environment],
