@@ -78,7 +78,6 @@ class ProofStepsData(Dataset):
         return self.__getitem__(idx)
 
 
-
 def create_dataloader(split, opts):
     def merge(batch):
         fields = [
@@ -93,8 +92,8 @@ def create_dataloader(split, opts):
             "tactic_str",
         ]
         data_batch = {key: [] for key in fields}
-        for G_step in batch:
-            for key, value in G_step.items():
+        for proof_step in batch:
+            for key, value in proof_step._store.items():
                 if key not in fields:
                     continue
                 data_batch[key].append(value)
@@ -120,5 +119,5 @@ if __name__ == "__main__":
     for i, data_batch in enumerate(loader):
         if i == 0:
             print(data_batch)
-            pickle.dump(data_batch, open('data_batch.pickle', 'wb'))
+            pickle.dump(data_batch, open("data_batch.pickle", "wb"))
         bar.update(i)
