@@ -176,10 +176,9 @@ def process_proof(filename, proof_data):
         del proof_step["goal"]["x"]
         del proof_step["goal"]["edge_index"]
         Gs = [from_networkx(G) for G in Gs]
-        B = Batch(Gs, **proof_steps)
-        print(B)
+        B = Batch(Gs, **proof_step)
         path = os.path.join(
-            args.output, split, f"{B['proof_name']}-{B['n_step']:08d}.pt"
+            args.output, split, f"{args.filter}-{B['proof_name']}-{B['n_step']:08d}.pt"
         )
         torch.save(B, path)
         # proof_steps[split].append(B)
