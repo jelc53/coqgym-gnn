@@ -112,7 +112,7 @@ def to_nx_graph(term):
     G = nx.Graph()
     for i, idx in enumerate(term["x"]):
         G.add_node(i, nonterminals_idx=idx)
-    G.add_edges_from(term["edge_idex"].T.numpy())
+    G.add_edges_from(term["edge_index"].T.numpy())
     return G
 
 
