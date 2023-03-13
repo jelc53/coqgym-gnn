@@ -1,21 +1,24 @@
+import os
+import random
+import sys
+
+import networkx as nx
 import torch
 # from torch.utils.data import Dataset, DataLoader
 from options import parse_args
-import random
 from progressbar import ProgressBar
-import os
-import sys
-
 from torch_geometric.data import Data, Dataset
 from torch_geometric.loader import DataLoader
+from torch_geometric.utils import from_networkx
 
 sys.setrecursionlimit(100000)
-import pickle
-from collections import defaultdict
-import numpy as np
-from glob import glob
 import json
 import pdb
+import pickle
+from collections import defaultdict
+from glob import glob
+
+import numpy as np
 
 
 class ProofStepsData(Dataset):
@@ -71,12 +74,46 @@ class ProofStepsData(Dataset):
         # proof_step["goal"] = proof_step["goal"]["ast"]
         proof_step["tactic_actions"] = proof_step["tactic"]["actions"]
         proof_step["tactic_str"] = proof_step["tactic"]["text"]
-        del proof_step["tactic"]
+        # del proof_step["tactic"]
 
-        return Data(**proof_step)
+        # create xs
+        xs = [ps["x"] for ps in proof_step["env"]]
+        xs += [lc["x"] for lc in proof_step["local_context"]]
+        xs += [proof_step["goal"]["x"]]
+        # create graphs
+        Gs = []
+        for env in proof_step["env"]:
+            G = to_nx_graph(env)
+            Gs.append(G)
+            # remove so we can add the regular dict to the Data object
+            del env["x"]
+            del env["edge_index"]
+        for lc in proof_step["local_context"]:
+            G = to_nx_graph(lc)
+            Gs.append(G)
+            # remove so we can add the regular dict to the Data object
+            del lc["x"]
+            del lc["edge_index"]
+        Gs.append(to_nx_graph(proof_step["goal"]))
+        del proof_step["goal"]["x"]
+        del proof_step["goal"]["edge_index"]
+        Gu = nx.disjoint_union_all(Gs)
+        G = from_networkx(Gu)
+        # Assign attributes of proof step to Data object
+        for k, v in proof_step.items():
+            G[k] = v
+        return G
 
     def get(self, idx):
         return self.__getitem__(idx)
+
+
+def to_nx_graph(term):
+    G = nx.Graph()
+    for i, idx in enumerate(term["x"]):
+        G.add_node(i, nonterminals_idx=idx)
+    G.add_edges_from(term["edge_idex"].T.numpy())
+    return G
 
 
 def create_dataloader(split, opts):
@@ -93,12 +130,14 @@ def create_dataloader(split, opts):
             "tactic_str",
         ]
         data_batch = {key: [] for key in fields}
-        for example in batch:
-            for key, value in example.items():
+        for G_step in batch:
+            for key, value in G_step.items():
                 if key not in fields:
                     continue
                 data_batch[key].append(value)
-        return data_batch
+        for k, v in data_batch.items():
+            batch[k] = v
+        return batch
 
     ds = ProofStepsData(split, opts)
     return DataLoader(

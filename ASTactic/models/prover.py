@@ -1,16 +1,17 @@
+import os
+import pdb
+import sys
+from itertools import chain
+
 import torch
 import torch.nn as nn
 from tac_grammar import CFG
+
 from .tactic_decoder import TacticDecoder
 from .term_encoder import TermEncoder
-import pdb
-import os
-from itertools import chain
-import sys
 
 sys.path.append(os.path.abspath("."))
 from time import time
-
 
 
 class Prover(nn.Module):
@@ -20,41 +21,34 @@ class Prover(nn.Module):
         self.tactic_decoder = TacticDecoder(CFG(opts.tac_grammar, "tactic_expr"), opts)
         self.term_encoder = TermEncoder(opts)
 
-
     def create_batch(self, environment, local_context, goal):
         out = torch.tensor([], device=self.opts.device)
 
         idx = 0
         for env in chain(*environment):
-            out = torch.hstack((out, torch.ones(len(env["x"])*idx, device=self.opts.device)))
+            out = torch.hstack(
+                (out, torch.ones(len(env["x"]) * idx, device=self.opts.device))
+            )
             idx += 1
 
         for context in chain(*local_context):
-            out = torch.hstack((out, torch.ones(len(context["x"])*idx, device=self.opts.device)))
+            out = torch.hstack(
+                (out, torch.ones(len(context["x"]) * idx, device=self.opts.device))
+            )
             idx += 1
 
-        out = torch.hstack((out, torch.ones(len(goal["x"])*idx, device=self.opts.device)))
+        out = torch.hstack(
+            (out, torch.ones(len(goal["x"]) * idx, device=self.opts.device))
+        )
 
         return out
 
-    def embed_terms(self, environment, local_context, goal):
-        if 'gnn' in self.opts.encoder_model: # Use GNN model to encode terms
-            all_x = list(
-                chain(
-                    [env["x"] for env in chain(*environment)],
-                    [context["x"] for context in chain(*local_context)],
-                    goal["x"]
-                )
-            )
-            all_edge_index = list(
-                chain(
-                    [env["edge_index"] for env in chain(*environment)],
-                    [context["edge_index"] for context in chain(*local_context)],
-                    goal["edge_index"]
-                )
-            )
-            batch = self.create_batch(environment, local_context, goal)
-            all_embeddings = self.term_encoder(all_x, all_edge_index, batch)
+    def embed_terms(self, batch):
+        environment = batch["env"]
+        local_context = batch["local_context"]
+        goal = batch["goal"]
+        if "gnn" in self.opts.encoder_model:  # Use GNN model to encode terms
+            all_embeddings = self.term_encoder(batch)
         else:
             all_asts = list(
                 chain(
@@ -110,9 +104,14 @@ class Prover(nn.Module):
 
         return environment_embeddings, context_embeddings, goal_embeddings
 
-    def forward(self, environment, local_context, goal, actions, teacher_forcing):
+    # def forward(self, environment, local_context, goal, actions, teacher_forcing):
+    def forward(self, batch, teacher_forcing):
+        environment = batch["env"]
+        local_context = batch["local_context"]
+        goal = batch["goal"]
+        actions = batch["actions"]
         environment_embeddings, context_embeddings, goal_embeddings = self.embed_terms(
-            environment, local_context, goal
+            batch
         )
         environment = [
             {
