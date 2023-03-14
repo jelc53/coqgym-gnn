@@ -22,36 +22,56 @@ class Prover(nn.Module):
         self.term_encoder = TermEncoder(opts)
 
     def embed_terms(self, batch):
-        environments = []
-        local_contexts = []
-        goals = []
-        all_embeddings = []
+        environment_embeddings = []
+        context_embeddings = []
+        goal_embeddings = []
+
         for proof_step in batch.to_data_list():
+
+            # generate embeddings
             embeddings = self.term_encoder(proof_step)
 
-        # reformat for decoder
-        num_envs = len(batch.env)
-        env_embed = torch.cat(  # environment
-            [torch.zeros(3, device=self.opts.device), all_embeddings[0:num_envs]], dim=0
-        )
+            # environment
+            n_env = len(proof_step.env)
+            environment_embeddings.append(
+                torch.cat(
+                    [
+                        torch.zeros(3, device=self.opts.device),
+                        embeddings[0:n_env]
+                    ],
+                    dim=0
+                )
+            )
+            environment_embeddings[-1][:, 0] = 1.0
 
-        num_context = len(batch.local_context["ast"])
-        context_embed = torch.cat(  # local context
-            [
-                torch.zeros(3, device=self.opts.device),
-                all_embeddings[num_envs : num_envs + num_context],
-            ],
-            dim=0,
-        )
+            # local context
+            n_cxt = len(proof_step.local_context)
+            context_embeddings.append(
+                torch.cat(
+                    [
+                        torch.zeros(3, device=self.opts.device),
+                        embeddings[n_env: n_env + n_cxt],
+                    ],
+                    dim=0,
+                )
+            )
+            context_embeddings[-1][:, 1] = 1.0
 
-        goal_embed = torch.cat(  # goal
-            [torch.zeros(3, device=self.opts.device), all_embeddings[-1]], dim=0
-        )
+            # goal
+            goal_embeddings.append(
+                torch.cat(
+                    [
+                        torch.zeros(3, device=self.opts.device),
+                        embeddings[-1]
+                    ],
+                    dim=0
+                )
+            )
+            goal_embeddings[-1][:, 2] = 1.0
 
-        # update padding references
-        env_embed[:, 0], context_embed[:, 1], goal_embed[:, 2] = 1.0, 1.0, 1.0
+        goal_embeddings = torch.stack(goal_embeddings)
 
-        return environments, local_contexts, goals
+        return environment_embeddings, context_embeddings, goal_embeddings
 
     # def forward(self, environment, local_context, goal, actions, teacher_forcing):
     def forward(self, batch, teacher_forcing):
