@@ -31,14 +31,14 @@ class TermEncoder(torch.nn.Module):  # StackGNN
 
         conv_model = self.build_conv_model(opts.model_type)
         self.convs = nn.ModuleList()
-        self.convs.append(conv_model(self.input_dim, self.hidden_dim))
+        self.convs.append(conv_model(self.input_dim, self.hidden_dim // opts.heads, heads = opts.heads))
         assert (opts.num_layers >= 1), 'Number of layers is not >=1'
-        for _ in range(opts.num_layers-1):
-            self.convs.append(conv_model(opts.heads * self.hidden_dim, self.hidden_dim))
+        for i in range(opts.num_layers-1):
+            self.convs.append(conv_model(self.hidden_dim, self.hidden_dim // opts.heads, heads = opts.heads))
 
         # post-message-passing
         self.post_mp = nn.Sequential(
-            nn.Linear(opts.heads * self.hidden_dim, self.hidden_dim), nn.Dropout(opts.dropout),
+            nn.Linear(self.hidden_dim, self.hidden_dim), nn.Dropout(opts.dropout),
             nn.Linear(self.hidden_dim, self.output_dim))
 
         self.dropout = opts.dropout
@@ -102,7 +102,6 @@ class GraphSage(MessagePassing):
         self.lin_r.reset_parameters()
 
     def forward(self, x, edge_index, size=None):
-        """"""  #TODO: figure out how to handle multiple asts with batch arg
         hv = self.propagate(edge_index=edge_index, x=(x, x), size=size)
         out = self.lin_l(x) + self.lin_r(hv)
 
@@ -112,11 +111,9 @@ class GraphSage(MessagePassing):
         return out
 
     def message(self, x_j):
-        """"""
         return x_j
 
     def aggregate(self, inputs, index, dim_size = None):
-        """"""
         node_dim = self.node_dim  # axis to index number of nodes
         out = torch_scatter.scatter(inputs, index=index, dim=node_dim, dim_size=dim_size, reduce="mean")
 
