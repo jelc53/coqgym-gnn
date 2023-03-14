@@ -10,7 +10,7 @@ import os
 from gallina import traverse_postorder
 import pdb
 
-from non_terminals import nonterminals
+from .non_terminals import nonterminals
 
 class InputOutputUpdateGate(nn.Module):
     def __init__(self, hidden_dim, nonlinear):

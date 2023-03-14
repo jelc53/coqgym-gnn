@@ -16,31 +16,33 @@ from torch_sparse import SparseTensor, set_diag
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
 
+from .non_terminals import nonterminals
+
 
 
 class TermEncoder(torch.nn.Module):  # StackGNN
-    def __init__(self, args, emb=True):
+    def __init__(self, opts, emb=True):
         super(TermEncoder, self).__init__()
-        self.args = args
+        self.opts = opts
 
-        self.input_dim = args.term_embedding_dim
-        self.hidden_dim = args.term_embedding_dim
-        self.output_dim = args.term_embedding_dim
+        self.input_dim = len(nonterminals)
+        self.hidden_dim = opts.term_embedding_dim
+        self.output_dim = opts.term_embedding_dim
 
-        conv_model = self.build_conv_model(args.model_type)
+        conv_model = self.build_conv_model(opts.model_type)
         self.convs = nn.ModuleList()
         self.convs.append(conv_model(self.input_dim, self.hidden_dim))
-        assert (args.num_layers >= 1), 'Number of layers is not >=1'
-        for _ in range(args.num_layers-1):
-            self.convs.append(conv_model(args.heads * self.hidden_dim, self.hidden_dim))
+        assert (opts.num_layers >= 1), 'Number of layers is not >=1'
+        for _ in range(opts.num_layers-1):
+            self.convs.append(conv_model(opts.heads * self.hidden_dim, self.hidden_dim))
 
         # post-message-passing
         self.post_mp = nn.Sequential(
-            nn.Linear(args.heads * self.hidden_dim, self.hidden_dim), nn.Dropout(args.dropout),
+            nn.Linear(opts.heads * self.hidden_dim, self.hidden_dim), nn.Dropout(opts.dropout),
             nn.Linear(self.hidden_dim, self.output_dim))
 
-        self.dropout = args.dropout
-        self.num_layers = args.num_layers
+        self.dropout = opts.dropout
+        self.num_layers = opts.num_layers
 
         self.emb = emb
 
@@ -57,9 +59,12 @@ class TermEncoder(torch.nn.Module):  # StackGNN
             # and also the first nn.Linear(hidden_dim * num_heads, hidden_dim) in post-message-passing.
             return GAT
 
-    def forward(self, x, edge_index, batch):
+    def forward(self, proof_step):
         """"""
-        # x, edge_index, batch = data.x, data.edge_index, data.batch
+        x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
+
+        # Preprocess x
+        x = F.one_hot(x, num_classes=len(nonterminals)).squeeze().float().to(self.opts.device)
 
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)
@@ -83,6 +88,7 @@ class GraphSage(MessagePassing):
         super(GraphSage, self).__init__(**kwargs)
 
         self.in_channels = in_channels
+        self.node_dim = 0
         self.out_channels = out_channels
         self.normalize = normalize
 
@@ -95,19 +101,13 @@ class GraphSage(MessagePassing):
         self.lin_l.reset_parameters()
         self.lin_r.reset_parameters()
 
-    def forward(self, x, edge_index, batch, size=None):
+    def forward(self, x, edge_index, size=None):
         """"""  #TODO: figure out how to handle multiple asts with batch arg
-        out = torch.tensor([])
-        for idx in batch[-1]:
-            x_i = x[batch == idx]
-            edge_index_i = edge_index[batch == idx]
-            hv_i = self.propagate(edge_index=edge_index_i, x=(x_i, x_i), size=size)
-            out_i = self.lin_l(x_i) + self.lin_r(hv_i)
+        hv = self.propagate(edge_index=edge_index, x=(x, x), size=size)
+        out = self.lin_l(x) + self.lin_r(hv)
 
-            if self.normalize:  # L-2 normalization if set to true
-                out_i = torch.nn.functional.normalize(out, p=2.0)
-
-            out.hstack((out, out_i))
+        if self.normalize:  # L-2 normalization if set to true
+            out = torch.nn.functional.normalize(out, p=2.0)
 
         return out
 

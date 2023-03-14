@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument("--filter", type=str)
 
     # term encoder
-    parser.add_argument("--model_type", type=str, default="GraphSAGE")
+    parser.add_argument("--model_type", type=str, default="GraphSage")
     parser.add_argument("--dropout", type=int, default=0.5)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--heads", type=int, default=1)

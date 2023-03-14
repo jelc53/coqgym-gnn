@@ -8,7 +8,7 @@ import torch.nn as nn
 from tac_grammar import CFG
 
 from .tactic_decoder import TacticDecoder
-from .term_encoder import TermEncoder
+from .term_encoder_stackgnn import TermEncoder
 
 sys.path.append(os.path.abspath("."))
 from time import time
@@ -36,10 +36,10 @@ class Prover(nn.Module):
             environment_embeddings.append(
                 torch.cat(
                     [
-                        torch.zeros(3, device=self.opts.device),
+                        torch.zeros((n_env, 3), device=self.opts.device),
                         embeddings[0:n_env]
                     ],
-                    dim=0
+                    dim=1
                 )
             )
             environment_embeddings[-1][:, 0] = 1.0
@@ -49,10 +49,10 @@ class Prover(nn.Module):
             context_embeddings.append(
                 torch.cat(
                     [
-                        torch.zeros(3, device=self.opts.device),
+                        torch.zeros((n_cxt, 3), device=self.opts.device),
                         embeddings[n_env: n_env + n_cxt],
                     ],
-                    dim=0,
+                    dim=1,
                 )
             )
             context_embeddings[-1][:, 1] = 1.0
@@ -67,7 +67,7 @@ class Prover(nn.Module):
                     dim=0
                 )
             )
-            goal_embeddings[-1][:, 2] = 1.0
+            goal_embeddings[-1][2] = 1.0
 
         goal_embeddings = torch.stack(goal_embeddings)
 
@@ -78,7 +78,7 @@ class Prover(nn.Module):
         environment = batch["env"]
         local_context = batch["local_context"]
         goal = batch["goal"]
-        actions = batch["actions"]
+        actions = batch["tactic_actions"]
         environment_embeddings, context_embeddings, goal_embeddings = self.embed_terms(
             batch
         )
@@ -100,7 +100,7 @@ class Prover(nn.Module):
         ]
         goal = {
             "embeddings": goal_embeddings,
-            "quantified_idents": [g.quantified_idents for g in goal],
+            "quantified_idents": [g['ast'].quantified_idents for g in goal],
         }
         asts, loss = self.tactic_decoder(
             environment, local_context, goal, actions, teacher_forcing

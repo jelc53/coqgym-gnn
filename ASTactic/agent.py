@@ -120,10 +120,7 @@ class Agent:
         for i, data_batch in enumerate(self.dataloader["train"]):
             use_teacher_forcing = random() < self.opts.teacher_forcing
             asts, loss = self.model(
-                data_batch["env"],
-                data_batch["local_context"],
-                data_batch["goal"],
-                data_batch["tactic_actions"],
+                data_batch,
                 use_teacher_forcing,
             )
             log(
