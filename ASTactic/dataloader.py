@@ -4,17 +4,13 @@ import sys
 
 import networkx as nx
 import torch
-# from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from options import parse_args
 from progressbar import ProgressBar
-from torch_geometric.data import Data, Dataset
-from torch_geometric.loader import DataLoader
-from torch_geometric.utils import from_networkx
+from torch_geometric.data import Data, Dataset, Batch
 
 sys.setrecursionlimit(100000)
-import json
 import pdb
-import pickle
 from collections import defaultdict
 from glob import glob
 
@@ -27,11 +23,11 @@ class ProofStepsData(Dataset):
         self.opts = opts
 
         if split in ["train", "valid"]:
-            self.proof_steps = glob(os.path.join(opts.datapath, split, "*.pickle"))
+            self.proof_steps = glob(os.path.join(opts.datapath, split, "*.pt"))
         elif split == "train_valid":
             self.proof_steps = glob(
-                os.path.join(opts.datapath, "train/*.pickle")
-            ) + glob(os.path.join(opts.datapath, "valid/*.pickle"))
+                os.path.join(opts.datapath, "train/*.pt")
+            ) + glob(os.path.join(opts.datapath, "valid/*.pt"))
         random.shuffle(self.proof_steps)
         print("%d proof steps in %s" % (len(self), split))
 
@@ -70,40 +66,40 @@ class ProofStepsData(Dataset):
             'tactic_str': STR,
         }
         """
-        data = pickle.load(open(self.proof_steps[idx], "rb"))
-        # TODO: Postprocess data so that x is one-hot?
+        data = torch.load(self.proof_steps[idx])
         return data
 
     def get(self, idx):
         return self.__getitem__(idx)
 
 
+def merge(batch_list):
+    fields = [
+        "file",
+        "proof_name",
+        "n_step",
+        "env",
+        "local_context",
+        "goal",
+        "is_synthetic",
+        "tactic_actions",
+        "tactic_str",
+    ]
+    data_batch = {key: [] for key in fields}
+    for proof_step in batch_list:
+        for key, value in proof_step._store.items():
+            if key not in fields:
+                continue
+            data_batch[key].append(value)
+    batch = Batch.from_data_list(batch_list)
+    for k, v in data_batch.items():
+        batch[k] = v
+    return batch
+
 def create_dataloader(split, opts):
-    def merge(batch):
-        fields = [
-            "file",
-            "proof_name",
-            "n_step",
-            "env",
-            "local_context",
-            "goal",
-            "is_synthetic",
-            "tactic_actions",
-            "tactic_str",
-        ]
-        data_batch = {key: [] for key in fields}
-        for proof_step in batch:
-            for key, value in proof_step._store.items():
-                if key not in fields:
-                    continue
-                data_batch[key].append(value)
-        for k, v in data_batch.items():
-            batch[k] = v
-        return batch
 
     ds = ProofStepsData(split, opts)
-    print(ds[0])
-    return DataLoader(
+    return DataLoader( # Use original pytorch data loader since we want to define custom collate_fn
         ds,
         opts.batchsize,
         shuffle=split.startswith("train"),
@@ -119,5 +115,5 @@ if __name__ == "__main__":
     for i, data_batch in enumerate(loader):
         if i == 0:
             print(data_batch)
-            pickle.dump(data_batch, open("data_batch.pickle", "wb"))
+            # pickle.dump(data_batch, open("data_batch.pickle", "wb"))
         bar.update(i)
