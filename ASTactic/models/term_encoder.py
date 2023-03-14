@@ -1,137 +1,193 @@
 import torch
+import torch_scatter
 import torch.nn as nn
 import torch.nn.functional as F
-import math
-from collections import defaultdict
-from time import time
-from itertools import chain
-from lark.tree import Tree
-import os
-from gallina import traverse_postorder
-import pdb
+
+import torch_geometric.nn as pyg_nn
+import torch_geometric.utils as pyg_utils
+
+from torch import Tensor
+from typing import Union, Tuple, Optional
+from torch_geometric.typing import (OptPairTensor, Adj, Size, NoneType,
+                                    OptTensor)
+
+from torch.nn import Parameter, Linear
+from torch_sparse import SparseTensor, set_diag
+from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
 
 from .non_terminals import nonterminals
 
-class InputOutputUpdateGate(nn.Module):
-    def __init__(self, hidden_dim, nonlinear):
-        super().__init__()
-        self.nonlinear = nonlinear
-        k = 1.0 / math.sqrt(hidden_dim)
-        self.W = nn.Parameter(torch.Tensor(hidden_dim, len(nonterminals) + hidden_dim))
-        nn.init.uniform_(self.W, -k, k)
-        self.b = nn.Parameter(torch.Tensor(hidden_dim))
-        nn.init.uniform_(self.b, -k, k)
-
-    def forward(self, xh):
-        return self.nonlinear(F.linear(xh, self.W, self.b))
 
 
-class ForgetGates(nn.Module):
-    def __init__(self, hidden_dim, opts):
-        super().__init__()
-        self.hidden_dim = hidden_dim
+class TermEncoder(torch.nn.Module):  # StackGNN
+    def __init__(self, opts, emb=True):
+        super(TermEncoder, self).__init__()
         self.opts = opts
-        k = 1.0 / math.sqrt(hidden_dim)
-        # the weight for the input
-        self.W_if = nn.Parameter(torch.Tensor(hidden_dim, len(nonterminals)))
-        nn.init.uniform_(self.W_if, -k, k)
-        # the weight for the hidden
-        self.W_hf = nn.Parameter(torch.Tensor(hidden_dim, hidden_dim))
-        nn.init.uniform_(self.W_hf, -k, k)
-        # the bias
-        self.b_f = nn.Parameter(torch.Tensor(hidden_dim))
-        nn.init.uniform_(self.b_f, -k, k)
 
-    def forward(self, x, h_children, c_children):
-        c_remain = torch.zeros(x.size(0), self.hidden_dim).to(self.opts.device)
+        self.input_dim = len(nonterminals)
+        self.hidden_dim = opts.term_embedding_dim
+        self.output_dim = opts.term_embedding_dim
 
-        Wx = F.linear(x, self.W_if)
-        all_h = list(chain(*h_children))
-        if all_h == []:
-            return c_remain
-        Uh = F.linear(torch.stack(all_h), self.W_hf, self.b_f)
-        i = 0
-        for j, h in enumerate(h_children):
-            if h == []:
-                continue
-            f_gates = torch.sigmoid(Wx[j] + Uh[i : i + len(h)])
-            i += len(h)
-            c_remain[j] = (f_gates * torch.stack(c_children[j])).sum(dim=0)
+        conv_model = self.build_conv_model(opts.model_type)
+        self.convs = nn.ModuleList()
+        self.convs.append(conv_model(self.input_dim, self.hidden_dim // opts.heads, heads = opts.heads))
+        assert (opts.num_layers >= 1), 'Number of layers is not >=1'
+        for i in range(opts.num_layers-1):
+            self.convs.append(conv_model(self.hidden_dim, self.hidden_dim // opts.heads, heads = opts.heads))
 
-        return c_remain
+        # post-message-passing
+        self.post_mp = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.hidden_dim), nn.Dropout(opts.dropout),
+            nn.Linear(self.hidden_dim, self.output_dim))
+
+        self.dropout = opts.dropout
+        self.num_layers = opts.num_layers
+
+        self.emb = emb
+
+    def build_conv_model(self, model_type):
+        if model_type == 'GraphSage':
+            return GraphSage
+        elif model_type == 'GAT':
+            # When applying GAT with num heads > 1, you need to modify the
+            # input and output dimension of the conv layers (self.convs),
+            # to ensure that the input dim of the next layer is num heads
+            # multiplied by the output dim of the previous layer.
+            # HINT: In case you want to play with multiheads, you need to change the for-loop that builds up self.convs to be
+            # self.convs.append(conv_model(hidden_dim * num_heads, hidden_dim)),
+            # and also the first nn.Linear(hidden_dim * num_heads, hidden_dim) in post-message-passing.
+            return GAT
+
+    def forward(self, proof_step):
+        """"""
+        x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
+
+        # Preprocess x
+        x = F.one_hot(x, num_classes=len(nonterminals)).squeeze().float().to(self.opts.device)
+
+        for i in range(self.num_layers):
+            x = self.convs[i](x, edge_index)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout,training=self.training)
+
+        x = self.post_mp(x)
+
+        if self.emb == True:
+            return x
+
+        return F.log_softmax(x, dim=1)
+
+    def loss(self, pred, label):
+        return F.nll_loss(pred, label)
 
 
-class TermEncoder(nn.Module):
-    def __init__(self, opts):
-        super().__init__()
-        self.opts = opts
-        self.input_gate = InputOutputUpdateGate(
-            opts.term_embedding_dim, nonlinear=torch.sigmoid
-        )
-        self.forget_gates = ForgetGates(opts.term_embedding_dim, opts)
-        self.output_gate = InputOutputUpdateGate(
-            opts.term_embedding_dim, nonlinear=torch.sigmoid
-        )
-        self.update_cell = InputOutputUpdateGate(
-            opts.term_embedding_dim, nonlinear=torch.tanh
-        )
+class GraphSage(MessagePassing):
+    """"""
+    def __init__(self, in_channels, out_channels, normalize=True, bias=False, **kwargs):
+        super(GraphSage, self).__init__(**kwargs)
 
-    def forward(self, term_asts):
-        # the height of a node determines when it can be processed
-        height2nodes = defaultdict(set)
+        self.in_channels = in_channels
+        self.node_dim = 0
+        self.out_channels = out_channels
+        self.normalize = normalize
 
-        def get_height(node):
-            height2nodes[node.height].add(node)
+        self.lin_l = torch.nn.Linear(in_channels, out_channels, bias=bias)
+        self.lin_r = torch.nn.Linear(in_channels, out_channels, bias=bias)
 
-        for ast in term_asts:
-            traverse_postorder(ast, get_height)
+        self.reset_parameters()
 
-        memory_cells = {}  # node -> memory cell
-        hidden_states = {}  # node -> hidden state
-        # return torch.zeros(len(term_asts), self.opts.term_embedding_dim).to(self.opts.device)
+    def reset_parameters(self):
+        self.lin_l.reset_parameters()
+        self.lin_r.reset_parameters()
 
-        # compute the embedding for each node
-        for height in sorted(height2nodes.keys()):
-            nodes_at_height = list(height2nodes[height])
-            # sum up the hidden states of the children
-            h_sum = []
-            c_remains = []
-            x = torch.zeros(
-                len(nodes_at_height), len(nonterminals), device=self.opts.device
-            ).scatter_(
-                1,
-                torch.tensor(
-                    [nonterminals.index(node.data) for node in nodes_at_height],
-                    device=self.opts.device,
-                ).unsqueeze(1),
-                1.0,
-            )
+    def forward(self, x, edge_index, size=None):
+        hv = self.propagate(edge_index=edge_index, x=(x, x), size=size)
+        out = self.lin_l(x) + self.lin_r(hv)
 
-            h_sum = torch.zeros(len(nodes_at_height), self.opts.term_embedding_dim).to(
-                self.opts.device
-            )
-            h_children = []
-            c_children = []
-            for j, node in enumerate(nodes_at_height):
-                h_children.append([])
-                c_children.append([])
-                for c in node.children:
-                    h = hidden_states[c]
-                    h_sum[j] += h
-                    h_children[-1].append(h)
-                    c_children[-1].append(memory_cells[c])
-            c_remains = self.forget_gates(x, h_children, c_children)
+        if self.normalize:  # L-2 normalization if set to true
+            out = torch.nn.functional.normalize(out, p=2.0)
 
-            # gates
-            xh = torch.cat([x, h_sum], dim=1)
-            i_gate = self.input_gate(xh)
-            o_gate = self.output_gate(xh)
-            u = self.update_cell(xh)
-            cells = i_gate * u + c_remains
-            hiddens = o_gate * torch.tanh(cells)
+        return out
 
-            for i, node in enumerate(nodes_at_height):
-                memory_cells[node] = cells[i]
-                hidden_states[node] = hiddens[i]
+    def message(self, x_j):
+        return x_j
 
-        return torch.stack([hidden_states[ast] for ast in term_asts])
+    def aggregate(self, inputs, index, dim_size = None):
+        node_dim = self.node_dim  # axis to index number of nodes
+        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, dim_size=dim_size, reduce="mean")
+
+        return out
+
+
+class GAT(MessagePassing):
+    """"""
+    def __init__(self, in_channels, out_channels, heads = 2,
+                 negative_slope = 0.2, dropout = 0., **kwargs):
+        super(GAT, self).__init__(node_dim=0, **kwargs)
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.heads = heads
+        self.negative_slope = negative_slope
+        self.dropout = dropout
+
+        self.lin_l = torch.nn.Linear(in_channels, out_channels * heads, bias=False)
+        self.lin_r = self.lin_l
+
+        self.att_l = nn.Parameter(torch.zeros(self.heads, self.out_channels))
+        self.att_r = nn.Parameter(torch.zeros(self.heads, self.out_channels))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.lin_l.weight)
+        nn.init.xavier_uniform_(self.lin_r.weight)
+        nn.init.xavier_uniform_(self.att_l)
+        nn.init.xavier_uniform_(self.att_r)
+
+    def forward(self, x, edge_index, size = None):
+        """"""
+        H, C = self.heads, self.out_channels
+
+         # pre-processing
+        x_l = self.lin_l(x).view(-1, H, C)
+        x_r = self.lin_r(x).view(-1, H, C)
+
+        alpha_l = (x_l * self.att_l).sum(dim=-1)
+        alpha_r = (x_r * self.att_r).sum(dim=-1)
+
+        # message propagation
+        out = self.propagate(edge_index=edge_index,
+                             alpha=(alpha_l, alpha_r),
+                             x=(x_l, x_r),
+                             size=size)
+
+        # post-processing
+        out = out.view(-1, H * C)
+
+        return out
+
+
+    def message(self, x_j, alpha_j, alpha_i, index, ptr, size_i):
+        """"""
+        # attention weights
+        alpha = F.leaky_relu(alpha_i + alpha_j, self.negative_slope)
+
+        # softmax
+        alpha = pyg_utils.softmax(alpha, index=index, ptr=ptr, num_nodes=size_i)
+
+        # apply dropout
+        alpha = F.dropout(alpha, p=self.dropout, training=self.training)
+
+        # multiply embeddings
+        out = alpha.unsqueeze(-1) * x_j
+
+        return out
+
+
+    def aggregate(self, inputs, index, dim_size = None):
+        """"""
+        out = torch_scatter.scatter(inputs, index=index, dim=self.node_dim, dim_size=dim_size, reduce="sum")
+
+        return out
