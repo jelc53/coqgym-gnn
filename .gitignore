@@ -149,6 +149,7 @@ coqhammer/
 proof_steps/
 sexp_cache*
 *.json
+*.simg
 runs/
 proof_steps_gnn/
 proof_steps_gnn_pyg_data/
