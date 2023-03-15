@@ -131,9 +131,17 @@ class Prover(nn.Module):
         for env in proof_step["env"]:
             G = to_nx_graph(env)
             Gs.append(G)
+<<<<<<< Updated upstream
         for lc in proof_step["local_context"]:
             G = to_nx_graph(lc)
             Gs.append(G)
+=======
+
+        for lc in proof_step["local_context"]:
+            G = to_nx_graph(lc)
+            Gs.append(G)
+
+>>>>>>> Stashed changes
         Gs.append(to_nx_graph(proof_step["goal"]))
         Gs = [from_networkx(G) for G in Gs]
         B = Batch.from_data_list(Gs)
