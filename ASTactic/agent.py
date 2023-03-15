@@ -55,12 +55,12 @@ def filter_env(env):
 
 
 def parse_goal(g):
-    goal_ast = term_parser.parse(sexp_cache[g["sexp"]])
+    goal_ast = term_parser.parse(g["sexp"])
     goal = {"id": g["id"], "text": g["type"], "ast": goal_ast, "x": create_x(goal_ast), "edge_index": create_edge_index(goal_ast)}
     local_context = []
     for i, h in enumerate(g["hypotheses"]):
         for ident in h["idents"]:
-            context_ast = term_parser.parse(sexp_cache[h["sexp"]])
+            context_ast = term_parser.parse(h["sexp"])
             local_context.append(
                 {
                     "ident": ident,
@@ -276,6 +276,7 @@ class Agent:
     def prove_DFS(self, proof_env, tac_template):
         obs = proof_env.init()
         env = filter_env(obs["env"])
+        first_env = deepcopy(env)
         first_goal_signatures = {get_goal_signature(obs["fg_goals"][0])}
 
         # initialize the stack
@@ -297,8 +298,8 @@ class Agent:
                 tac = stack[-1].pop()
 
             obs = proof_env.step(tac)
-            print(obs["result"])
-            print_goals(obs)
+            # print(obs["result"])
+            # print_goals(obs)
 
             if obs["result"] == "SUCCESS":
                 script.append(tac)
@@ -321,6 +322,7 @@ class Agent:
                     continue
                 first_goal_signatures.add(sig)
                 local_context, goal = parse_goal(obs["fg_goals"][0])
+                # TODO: Figure out why env is changing
                 tactics = self.model.beam_search(env, local_context, goal)
                 stack.append([tac_template % tac.to_tokens() for tac in tactics[::-1]])
 

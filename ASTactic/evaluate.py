@@ -111,7 +111,8 @@ if __name__ == "__main__":
         files = [
             f
             for f in files
-            if md5(f.encode("utf-8")).hexdigest().startswith(opts.filter)
+            # if md5(f.encode("utf-8")).hexdigest().startswith(opts.filter)
+            if opts.filter in f
         ]
 
     print(files)

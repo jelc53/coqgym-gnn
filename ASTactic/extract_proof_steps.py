@@ -184,7 +184,8 @@ def process_proof(filename, proof_data):
         )
         torch.save(B, path)
         # proof_steps[split].append(B)
-        # gc.collect()
+        del B, Gs, env, proof_step
+        gc.collect()
 
 
 if __name__ == "__main__":

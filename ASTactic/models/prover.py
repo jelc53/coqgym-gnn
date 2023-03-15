@@ -7,11 +7,24 @@ import torch
 import torch.nn as nn
 from tac_grammar import CFG
 
+from torch_geometric.data import Batch
+from torch_geometric.utils import from_networkx
+
+import networkx as nx
+
 from .tactic_decoder import TacticDecoder
 from .term_encoder_stackgnn import TermEncoder
 
 sys.path.append(os.path.abspath("."))
 from time import time
+
+
+def to_nx_graph(term):
+    G = nx.Graph()
+    for i, x in enumerate(term["x"]):
+        G.add_node(i, x=x)
+    G.add_edges_from(term["edge_index"].T.numpy())
+    return G
 
 
 class Prover(nn.Module):
@@ -110,12 +123,32 @@ class Prover(nn.Module):
     def beam_search(self, environment, local_context, goal):
         # TODO(danj/dhuang): update this to convert environment, local_context, goal
         # need to add the G_step to this method call
-        d = {
-            "env": [environment],
-            "local_context": [local_context],
-            "goal": [goal],
+        proof_step = {
+            "env": environment,
+            "local_context": local_context,
+            "goal": goal,
         }
-        batch = None  # TODO: create this and combine with d
+        Gs = []
+        for env in proof_step["env"]:
+            G = to_nx_graph(env)
+            Gs.append(G)
+            # remove so we can add the regular dict to the Data object
+            del env["x"]
+            del env["edge_index"]
+        for lc in proof_step["local_context"]:
+            G = to_nx_graph(lc)
+            Gs.append(G)
+            # remove so we can add the regular dict to the Data object
+            del lc["x"]
+            del lc["edge_index"]
+        Gs.append(to_nx_graph(proof_step["goal"]))
+        del proof_step["goal"]["x"]
+        del proof_step["goal"]["edge_index"]
+        Gs = [from_networkx(G) for G in Gs]
+        B = Batch.from_data_list(Gs)
+        for k, v in proof_step.items():
+            B[k] = v
+        batch = Batch.from_data_list([B])
         environment_embeddings, context_embeddings, goal_embeddings = self.embed_terms(
             batch
         )
