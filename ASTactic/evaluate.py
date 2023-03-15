@@ -146,7 +146,7 @@ if __name__ == "__main__":
             % (
                 os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
                     os.path.sep, "-"
-                ),
+                )[:-5],
                 opts.proof,
             ),
         )
