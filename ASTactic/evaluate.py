@@ -137,7 +137,7 @@ if __name__ == "__main__":
             "%s.json"
             % os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
                 os.path.sep, "-"
-            ),
+            )[:-5],
         )
     else:
         oup_file = os.path.join(
