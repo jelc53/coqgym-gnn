@@ -21,7 +21,7 @@ from .non_terminals import nonterminals
 
 
 class TermEncoder(torch.nn.Module):  # StackGNN
-    def __init__(self, opts, emb=True):
+    def __init__(self, opts):
         super(TermEncoder, self).__init__()
         self.opts = opts
 
@@ -44,7 +44,9 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         self.dropout = opts.dropout
         self.num_layers = opts.num_layers
 
-        self.emb = emb
+        # pooling
+        self.pool = pyg_nn.dense_diff_pool
+        self.post_pool = nn.Linear(self.output_dim, self.output_dim)
 
     def build_conv_model(self, model_type):
         if model_type == 'GraphSage':
@@ -63,7 +65,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         """"""
         x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
 
-        # Preprocess x
+        # preprocess x
         x = F.one_hot(x, num_classes=len(nonterminals)).squeeze().float().to(self.opts.device)
 
         for i in range(self.num_layers):
@@ -73,10 +75,10 @@ class TermEncoder(torch.nn.Module):  # StackGNN
 
         x = self.post_mp(x)
 
-        if self.emb == True:
-            return x
-
-        return F.log_softmax(x, dim=1)
+        # differential pooling
+        x = self.pool(x, batch)
+         
+        return self.post_pool(x)
 
     def loss(self, pred, label):
         return F.nll_loss(pred, label)
