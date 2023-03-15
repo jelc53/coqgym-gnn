@@ -39,49 +39,48 @@ class Prover(nn.Module):
         context_embeddings = []
         goal_embeddings = []
 
-        for proof_step in batch.to_data_list():
+        # generate embeddings
+        embeddings = self.term_encoder(batch)
 
-            # generate embeddings
-            embeddings = self.term_encoder(proof_step)
+        # separate into environment, context, and goal
+        j = 0
+        environment = batch['env']
+        local_context = batch['local_context']
 
-            # environment
-            n_env = len(proof_step.env)
+        for n in range(len(batch)):
+            size = len(environment[n])
             environment_embeddings.append(
                 torch.cat(
                     [
-                        torch.zeros((n_env, 3), device=self.opts.device),
-                        embeddings[0:n_env]
+                        torch.zeros(size, 3, device=self.opts.device),
+                        embeddings[j : j + size],
                     ],
-                    dim=1
+                    dim=1,
                 )
             )
             environment_embeddings[-1][:, 0] = 1.0
+            j += size
 
-            # local context
-            n_cxt = len(proof_step.local_context)
+            size = len(local_context[n])
             context_embeddings.append(
                 torch.cat(
                     [
-                        torch.zeros((n_cxt, 3), device=self.opts.device),
-                        embeddings[n_env: n_env + n_cxt],
+                        torch.zeros(size, 3, device=self.opts.device),
+                        embeddings[j : j + size],
                     ],
                     dim=1,
                 )
             )
             context_embeddings[-1][:, 1] = 1.0
+            j += size
 
-            # goal
             goal_embeddings.append(
                 torch.cat(
-                    [
-                        torch.zeros(3, device=self.opts.device),
-                        embeddings[-1]
-                    ],
-                    dim=0
+                    [torch.zeros(3, device=self.opts.device), embeddings[j]], dim=0
                 )
             )
             goal_embeddings[-1][2] = 1.0
-
+            j += 1
         goal_embeddings = torch.stack(goal_embeddings)
 
         return environment_embeddings, context_embeddings, goal_embeddings
