@@ -121,7 +121,6 @@ class Prover(nn.Module):
         return asts, loss
 
     def beam_search(self, environment, local_context, goal):
-        # TODO(danj/dhuang): update this to convert environment, local_context, goal
         # need to add the G_step to this method call
         proof_step = {
             "env": environment,
@@ -132,22 +131,15 @@ class Prover(nn.Module):
         for env in proof_step["env"]:
             G = to_nx_graph(env)
             Gs.append(G)
-            # remove so we can add the regular dict to the Data object
-            del env["x"]
-            del env["edge_index"]
         for lc in proof_step["local_context"]:
             G = to_nx_graph(lc)
             Gs.append(G)
-            # remove so we can add the regular dict to the Data object
-            del lc["x"]
-            del lc["edge_index"]
         Gs.append(to_nx_graph(proof_step["goal"]))
-        del proof_step["goal"]["x"]
-        del proof_step["goal"]["edge_index"]
         Gs = [from_networkx(G) for G in Gs]
         B = Batch.from_data_list(Gs)
         for k, v in proof_step.items():
-            B[k] = v
+            if k not in ['x', 'edge_index']:
+                B[k] = v
         batch = Batch.from_data_list([B])
         environment_embeddings, context_embeddings, goal_embeddings = self.embed_terms(
             batch

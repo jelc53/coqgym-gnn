@@ -322,7 +322,6 @@ class Agent:
                     continue
                 first_goal_signatures.add(sig)
                 local_context, goal = parse_goal(obs["fg_goals"][0])
-                # TODO: Figure out why env is changing
                 tactics = self.model.beam_search(env, local_context, goal)
                 stack.append([tac_template % tac.to_tokens() for tac in tactics[::-1]])
 
