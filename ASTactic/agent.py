@@ -276,7 +276,6 @@ class Agent:
     def prove_DFS(self, proof_env, tac_template):
         obs = proof_env.init()
         env = filter_env(obs["env"])
-        first_env = deepcopy(env)
         first_goal_signatures = {get_goal_signature(obs["fg_goals"][0])}
 
         # initialize the stack
