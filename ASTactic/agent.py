@@ -118,6 +118,7 @@ class Agent:
 
         bar = ProgressBar(max_value=len(self.dataloader["train"]))
         for i, data_batch in enumerate(self.dataloader["train"]):
+            data_batch.to(self.opts.device)  # send batch to device
             use_teacher_forcing = random() < self.opts.teacher_forcing
             asts, loss = self.model(
                 data_batch,
@@ -146,12 +147,10 @@ class Agent:
         bar = ProgressBar(max_value=len(self.dataloader["valid"]))
 
         for i, data_batch in enumerate(self.dataloader["valid"]):
+            data_batch.to(self.opts.device)  # send batch to device
             asts, loss = self.model(
-                data_batch["env"],
-                data_batch["local_context"],
-                data_batch["goal"],
-                data_batch["tactic_actions"],
-                False,
+                batch=data_batch,
+                use_teacher_forcing=False,
             )
             loss_avg += loss.item()
 
