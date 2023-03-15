@@ -45,7 +45,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         self.num_layers = opts.num_layers
 
         # pooling
-        self.pool = pyg_nn.dense_diff_pool
+        self.pool = pyg_nn.global_mean_pool  # self.pool = pyg_nn.dense_diff_pool
         self.post_pool = nn.Linear(self.output_dim, self.output_dim)
 
     def build_conv_model(self, model_type):
