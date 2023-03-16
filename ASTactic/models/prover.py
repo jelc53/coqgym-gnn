@@ -3,14 +3,12 @@ import pdb
 import sys
 from itertools import chain
 
+import networkx as nx
 import torch
 import torch.nn as nn
 from tac_grammar import CFG
-
 from torch_geometric.data import Batch
 from torch_geometric.utils import from_networkx
-
-import networkx as nx
 
 from .tactic_decoder import TacticDecoder
 from .term_encoder_stackgnn import TermEncoder
@@ -40,12 +38,12 @@ class Prover(nn.Module):
         goal_embeddings = []
 
         # generate embeddings
-        embeddings = self.term_encoder(batch)
+        embeddings = self.term_encoder(batch.to(self.opts.device))
 
         # separate into environment, context, and goal
         j = 0
-        environment = batch['env']
-        local_context = batch['local_context']
+        environment = batch["env"]
+        local_context = batch["local_context"]
 
         for n in range(len(batch)):
             size = len(environment[n])
@@ -112,7 +110,7 @@ class Prover(nn.Module):
         ]
         goal = {
             "embeddings": goal_embeddings,
-            "quantified_idents": [g['ast'].quantified_idents for g in goal],
+            "quantified_idents": [g["ast"].quantified_idents for g in goal],
         }
         asts, loss = self.tactic_decoder(
             environment, local_context, goal, actions, teacher_forcing
@@ -137,7 +135,7 @@ class Prover(nn.Module):
         Gs = [from_networkx(G) for G in Gs]
         B = Batch.from_data_list(Gs)
         for k, v in proof_step.items():
-            if k not in ['x', 'edge_index']:
+            if k not in ["x", "edge_index"]:
                 B[k] = v
         batch = Batch.from_data_list([B])
         environment_embeddings, context_embeddings, goal_embeddings = self.embed_terms(
