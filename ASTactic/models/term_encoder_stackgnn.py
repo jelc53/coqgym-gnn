@@ -12,6 +12,7 @@ from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.typing import (Adj, NoneType, OptPairTensor, OptTensor,
                                     Size)
 from torch_geometric.utils import add_self_loops, remove_self_loops, softmax
+from torch_geometric.graphgym.models.encoder import IntegerFeatureEncoder
 from torch_sparse import SparseTensor, set_diag
 
 from .non_terminals import nonterminals
@@ -22,9 +23,11 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         super(TermEncoder, self).__init__()
         self.opts = opts
 
-        self.input_dim = len(nonterminals)
+        self.input_dim = opts.nonterminals_feature_dim
         self.hidden_dim = opts.term_embedding_dim
         self.output_dim = opts.term_embedding_dim
+
+        self.feature_encoder = IntegerFeatureEncoder(self.input_dim, len(nonterminals))
 
         conv_model = self.build_conv_model(opts.model_type)
         self.convs = nn.ModuleList()
@@ -68,17 +71,13 @@ class TermEncoder(torch.nn.Module):  # StackGNN
 
     def forward(self, proof_step):
         """"""
+        proof_step = self.feature_encoder(proof_step)
         x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
 
         # preprocess x
         batch = batch.to(self.opts.device)
         edge_index = edge_index.to(self.opts.device)
-        x = (
-            F.one_hot(x, num_classes=len(nonterminals))
-            .squeeze()
-            .float()
-            .to(self.opts.device)
-        )
+        x = x.to(self.opts.device)
 
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)

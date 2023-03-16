@@ -46,6 +46,7 @@ def parse_args():
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--heads", type=int, default=1)
     parser.add_argument("--term_embedding_dim", type=int, default=256)
+    parser.add_argument("--nonterminals_feature_dim", type=int, default=32)
 
     # tactic decoder
     parser.add_argument("--size_limit", type=int, default=50)
