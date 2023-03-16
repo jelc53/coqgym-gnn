@@ -68,6 +68,7 @@ class TermEncoder(torch.nn.Module):  # StackGNN
             # self.convs.append(conv_model(hidden_dim * num_heads, hidden_dim)),
             # and also the first nn.Linear(hidden_dim * num_heads, hidden_dim) in post-message-passing.
             return GAT
+        raise ValueError("Unknown model type: {}".format(model_type))
 
     def forward(self, proof_step):
         """"""
