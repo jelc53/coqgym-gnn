@@ -148,10 +148,7 @@ class Agent:
 
         for i, data_batch in enumerate(self.dataloader["valid"]):
             data_batch.to(self.opts.device)  # send batch to device
-            asts, loss = self.model(
-                batch=data_batch,
-                use_teacher_forcing=False,
-            )
+            asts, loss = self.model(data_batch, False)
             loss_avg += loss.item()
 
             for n in range(len(data_batch["file"])):
