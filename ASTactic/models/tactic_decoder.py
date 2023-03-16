@@ -32,12 +32,14 @@ class ContextReader(nn.Module):
         self.linear1 = nn.Linear(
             opts.hidden_dim + opts.term_embedding_dim + 3, opts.hidden_dim
         )
-        self.relu1 = nn.ReLU()
+        self.relu1 = nn.ReLU()  #TODO: PReLU is the best?
         self.linear2 = nn.Linear(opts.hidden_dim, 1)
         self.default_context = torch.zeros(
             self.opts.term_embedding_dim + 3, device=self.opts.device
         )
 
+        # TODO: layer normalization?
+        
     def forward(self, states, embeddings):
         assert states.size(0) == len(embeddings)
         context = []
