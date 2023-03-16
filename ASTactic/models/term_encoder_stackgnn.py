@@ -13,6 +13,7 @@ from torch_geometric.typing import (Adj, NoneType, OptPairTensor, OptTensor,
                                     Size)
 from torch_geometric.utils import add_self_loops, remove_self_loops, softmax
 from torch_sparse import SparseTensor, set_diag
+from .diff_pool import DiffPool
 
 from .non_terminals import nonterminals
 
@@ -65,10 +66,12 @@ class TermEncoder(torch.nn.Module):  # StackGNN
             # self.convs.append(conv_model(hidden_dim * num_heads, hidden_dim)),
             # and also the first nn.Linear(hidden_dim * num_heads, hidden_dim) in post-message-passing.
             return GAT
+        elif model_type == "DiffPool":
+            return DiffPool
 
-    def forward(self, proof_step):
+    def forward(self, proof_steps):
         """"""
-        x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
+        x, edge_index, batch = proof_steps.x, proof_steps.edge_index, proof_steps.batch
 
         # preprocess x
         batch = batch.to(self.opts.device)
