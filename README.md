@@ -1,7 +1,36 @@
-# CoqGym
+# CoqGym-GNN
 
 ![Example proof](images/example_proof.jpg)
 
+Work-in-progress of integrating GNN and partial changes to the original [CoqGym repository](https://github.com/princeton-vl/CoqGym).
+
+Forked from code for the paper:
+[Learning to Prove Theorems via Interacting with Proof Assistants](https://arxiv.org/abs/1905.09381)
+[Kaiyu Yang](https://www.cs.princeton.edu/~kaiyuy/) and [Jia Deng](https://www.cs.princeton.edu/~jiadeng/)
+International Conference on Machine Learning (ICML) 2019
+
+## Table of Contents
+
+1. [Installing CoqGym-GNN](#1-installing-coqgym-gnn)
+    &nbsp; &nbsp;  1.1 [Dependencies](#11-dependencies)
+    &nbsp; &nbsp;  1.2 [Building Coq, SerAPI, CoqHammer, and the Coq Projects](#12-building-coq-serapi-coqhammer-and-the-coq-projects)
+    &nbsp; &nbsp;  1.3 [Extracting the Proofs from Coq Code](#13-extracting-the-proofs-from-coq-code-optional)
+    &nbsp; &nbsp;  1.4 [Downloading the Pre-extracted Proofs](#14-downloading-the-pre-extracted-proofs-recommended)
+
+2. [Training]()
+3. [Testing]()
+4. [Model implementation locations]()
+
+
+---
+
+## 1. Installing CoqGym-GNN
+
+Follow these instructions to install CoqGym and the necessary requirements to train and evaluate the models.
+
+
+
+<!--
 Code for the paper:
 
 [Learning to Prove Theorems via Interacting with Proof Assistants](https://arxiv.org/abs/1905.09381)
@@ -384,4 +413,4 @@ Assuming you want to test the model checkpoint `runs/astactic/checkpoints/model_
 
 ## 7. Contributing
 
-We welcome and appreciate contributions from the community. For bug fixes and relatively minor changes (such as comments, typos, etc.), feel free to submit a pull request directly. For anything beyond, please first post in [Discussions](https://github.com/princeton-vl/CoqGym/discussions) before implementing.
+We welcome and appreciate contributions from the community. For bug fixes and relatively minor changes (such as comments, typos, etc.), feel free to submit a pull request directly. For anything beyond, please first post in [Discussions](https://github.com/princeton-vl/CoqGym/discussions) before implementing. -->
