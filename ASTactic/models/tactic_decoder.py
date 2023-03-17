@@ -32,12 +32,12 @@ class ContextReader(nn.Module):
         self.linear1 = nn.Linear(
             opts.hidden_dim + opts.term_embedding_dim + 3, opts.hidden_dim
         )
-        self.relu1 = nn.PReLU()
-        self.layer_norm1 = nn.LayerNorm(opts.hidden_dim)
-        self.linear2 = nn.Linear(opts.hidden_dim, opts.hidden_dim)
-        self.relu2 = nn.PReLU()
-        self.layer_norm2 = nn.LayerNorm(opts.hidden_dim)
-        self.linear3 = nn.Linear(opts.hidden_dim, 1)
+        self.relu1 = nn.ReLU()
+        # self.layer_norm1 = nn.LayerNorm(opts.hidden_dim)
+        # self.linear2 = nn.Linear(opts.hidden_dim, opts.hidden_dim)
+        # self.relu2 = nn.PReLU()
+        # self.layer_norm2 = nn.LayerNorm(opts.hidden_dim)
+        self.linear2 = nn.Linear(opts.hidden_dim, 1)
         self.default_context = torch.zeros(
             self.opts.term_embedding_dim + 3, device=self.opts.device
         )
@@ -52,14 +52,14 @@ class ContextReader(nn.Module):
                 input = torch.cat(
                     [state.unsqueeze(0).expand(embedding.size(0), -1), embedding], dim=1
                 )
-                weights = self.linear1(input)
-                weights = self.relu1(weights)
-                weights = self.layer_norm1(weights)
-                weights = self.linear2(weights)
-                weights = self.relu2(weights)
-                weights = self.layer_norm2(weights)
-                weights = self.linear3(weights)
-                # weights = self.linear2(self.layer_norm(self.relu1(self.linear1(input))))
+                # weights = self.linear1(input)
+                # weights = self.relu1(weights)
+                # weights = self.layer_norm1(weights)
+                # weights = self.linear2(weights)
+                # weights = self.relu2(weights)
+                # weights = self.layer_norm2(weights)
+                # weights = self.linear3(weights)
+                weights = self.linear2(self.relu1(self.linear1(input)))
                 weights = F.softmax(weights, dim=0)
                 context.append(torch.matmul(embedding.t(), weights).squeeze())
         context = torch.stack(context)
