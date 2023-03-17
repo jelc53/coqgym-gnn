@@ -11,7 +11,7 @@ def rage(name: str, model_path: str, model_type: str, extra: str = '', n_cpu: in
         'zorns-lemma',
         'coqoban',
         'coq-procrastination',
-        'dblib',
+        'fermat4',
         'zfc',
         'hoare-tut',
         'coqrel',
