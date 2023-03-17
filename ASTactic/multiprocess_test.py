@@ -60,8 +60,6 @@ def parse_args(argv):
     )
     parser.add_argument("name")
     parser.add_argument("model_path")
-    parser.add_argument("-e", "--extra", help="extra args",
-                        default="--num_heads 2")
     parser.add_argument("-n_cpu", default=mp.cpu_count(), type=int)
     return parser.parse_args(argv[1:])
 
@@ -69,4 +67,4 @@ def parse_args(argv):
 if __name__ == "__main__":
     args = parse_args(sys.argv)
     print(args)
-    rage(args.name, args.model_path, args.extra, args.n_cpu)
+    rage(args.name, args.model_path, args.n_cpu)
