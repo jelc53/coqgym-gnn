@@ -67,4 +67,4 @@ def parse_args(argv):
 if __name__ == "__main__":
     args = parse_args(sys.argv)
     print(args)
-    rage(args.name, args.model_path, args.n_cpu)
+    rage(args.name, args.model_path, '', args.n_cpu)
