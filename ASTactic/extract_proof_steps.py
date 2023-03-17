@@ -1,11 +1,6 @@
-from utils import SexpCache, iter_proofs
-from gallina import GallinaTermParser, traverse_postorder
 from torch_geometric.utils import from_networkx
 from torch_geometric.data import Batch
-from models.non_terminals import nonterminals
-from models.gnn_utils import create_edge_index, create_x
 from lark.exceptions import ParseError, UnexpectedCharacters
-from agent import filter_env
 import torch
 import networkx as nx
 from hashlib import md5
@@ -18,14 +13,17 @@ import pickle
 import sys
 from glob import glob
 
-from tac_grammar import CFG, NonterminalNode, TerminalNode, TreeBuilder
 
 sys.setrecursionlimit(100000)
 sys.path.append(
-    os.path.normpath(os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "../"))
+    os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
 )
-
+from utils import SexpCache, iter_proofs
+from agent import filter_env
+from gallina import GallinaTermParser, traverse_postorder
+from tac_grammar import CFG, NonterminalNode, TerminalNode, TreeBuilder
+from models.non_terminals import nonterminals
+from models.gnn_utils import create_edge_index, create_x
 
 term_parser = GallinaTermParser(caching=True)
 sexp_cache = SexpCache("../sexp_cache", readonly=True)
