@@ -1,30 +1,31 @@
+from utils import SexpCache, iter_proofs
+from gallina import GallinaTermParser, traverse_postorder
+from torch_geometric.utils import from_networkx
+from torch_geometric.data import Batch
+from models.non_terminals import nonterminals
+from models.gnn_utils import create_edge_index, create_x
+from lark.exceptions import ParseError, UnexpectedCharacters
+from agent import filter_env
+import torch
+import networkx as nx
+from hashlib import md5
+import pdb
+import gc
+import argparse
 import json
 import os
 import pickle
 import sys
+from glob import glob
 
 from tac_grammar import CFG, NonterminalNode, TerminalNode, TreeBuilder
 
 sys.setrecursionlimit(100000)
 sys.path.append(
-    os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
+    os.path.normpath(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "../"))
 )
-import argparse
-import gc
-import pdb
-from hashlib import md5
 
-import networkx as nx
-import torch
-from agent import filter_env
-from lark.exceptions import ParseError, UnexpectedCharacters
-from models.gnn_utils import create_edge_index, create_x
-from models.non_terminals import nonterminals
-from torch_geometric.data import Batch
-from torch_geometric.utils import from_networkx
-
-from gallina import GallinaTermParser, traverse_postorder
-from utils import SexpCache, iter_proofs
 
 term_parser = GallinaTermParser(caching=True)
 sexp_cache = SexpCache("../sexp_cache", readonly=True)
@@ -114,6 +115,10 @@ def process_proof(filename, proof_data):
             return
 
     for i, step in enumerate(proof_data["steps"]):
+        pattern = f"**/**{args.filter}-{proof_data['name']}*.pt"
+        if glob(pattern, recursive=True):
+            continue
+        print(pattern)
         # consider only tactics
         if step["command"][1] in [
             "VernacEndProof",
