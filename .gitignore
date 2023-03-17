@@ -146,7 +146,7 @@ coq/
 coq-serapi/
 ._data
 coqhammer/
-proof_steps/
+proof_steps*/
 sexp_cache*
 *.json
 runs/
