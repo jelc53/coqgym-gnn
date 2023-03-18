@@ -12,7 +12,7 @@ def rage(n_cpu: int = mp.cpu_count()):
     with open("../projs_split.json") as f:
         d = json.load(f)
     n = len(d["projs_valid"])
-    tasks = d["projs_valid"][:n // 2] # [n//2 :]
+    tasks = d["projs_valid"]
     cmds = [f"python extract_proof_steps.py --filter {task} --output ./proof_steps_gnn" for task in tasks]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)

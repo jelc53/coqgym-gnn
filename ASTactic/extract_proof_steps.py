@@ -1,15 +1,13 @@
 from torch_geometric.utils import from_networkx
-from torch_geometric.data import Batch
+from torch_geometric.data import Batch, Data
 from lark.exceptions import ParseError, UnexpectedCharacters
 import torch
-import networkx as nx
 from hashlib import md5
 import pdb
 import gc
 import argparse
 import json
 import os
-import pickle
 import sys
 from glob import glob
 
@@ -22,7 +20,6 @@ from utils import SexpCache, iter_proofs
 from agent import filter_env
 from gallina import GallinaTermParser, traverse_postorder
 from tac_grammar import CFG, NonterminalNode, TerminalNode, TreeBuilder
-from models.non_terminals import nonterminals
 from models.gnn_utils import create_edge_index, create_x
 
 term_parser = GallinaTermParser(caching=True)
@@ -79,14 +76,8 @@ proof_steps = {"train": [], "valid": [], "test": []}
 
 num_discarded = 0
 
-
-def to_nx_graph(term):
-    G = nx.Graph()
-    for i, x in enumerate(term["x"]):
-        G.add_node(i, x=x)
-    G.add_edges_from(term["edge_index"].T.numpy())
-    return G
-
+def to_pyg_data(term):
+    return Data(x=torch.tensor(term["x"]), edge_index=torch.tensor(term["edge_index"]))
 
 def process_proof(filename, proof_data):
     if "entry_cmds" in proof_data:
@@ -113,10 +104,6 @@ def process_proof(filename, proof_data):
             return
 
     for i, step in enumerate(proof_data["steps"]):
-        pattern = f"**/**{args.filter}-{proof_data['name']}*.pt"
-        if glob(pattern, recursive=True):
-            continue
-        print(pattern)
         # consider only tactics
         if step["command"][1] in [
             "VernacEndProof",
@@ -125,16 +112,10 @@ def process_proof(filename, proof_data):
             "VernacEndSubproof",
         ]:
             continue
-        assert step["command"][1] == "VernacExtend"
-        assert step["command"][0].endswith(".")
-        # environment
-        env = filter_env(proof_data["env"])
         # local context & goal
         if step["goal_ids"]["fg"] == []:
             num_discarded += 1
             continue
-        goal_id = step["goal_ids"]["fg"][0]
-        local_context, goal = parse_goal(proof_data["goals"][str(goal_id)])
         # tactic
         tac_str = step["command"][0][:-1]
         try:
@@ -142,6 +123,18 @@ def process_proof(filename, proof_data):
         except (UnexpectedCharacters, ParseError) as ex:
             num_discarded += 1
             continue
+
+        pattern = f"**/**{args.filter}-{proof_data['name']}*.pt"
+        if glob(pattern, recursive=True):
+            continue
+        print(pattern)
+
+        assert step["command"][1] == "VernacExtend"
+        assert step["command"][0].endswith(".")
+        # environment
+        env = filter_env(proof_data["env"])
+        goal_id = step["goal_ids"]["fg"][0]
+        local_context, goal = parse_goal(proof_data["goals"][str(goal_id)])
         proof_step = {
             "file": filename,
             "proof_name": proof_data["name"],
@@ -164,21 +157,20 @@ def process_proof(filename, proof_data):
         # create graphs
         Gs = []
         for env in proof_step["env"]:
-            G = to_nx_graph(env)
+            G = to_pyg_data(env)
             Gs.append(G)
             # remove so we can add the regular dict to the Data object
             del env["x"]
             del env["edge_index"]
         for lc in proof_step["local_context"]:
-            G = to_nx_graph(lc)
+            G = to_pyg_data(lc)
             Gs.append(G)
             # remove so we can add the regular dict to the Data object
             del lc["x"]
             del lc["edge_index"]
-        Gs.append(to_nx_graph(proof_step["goal"]))
+        Gs.append(to_pyg_data(proof_step["goal"]))
         del proof_step["goal"]["x"]
         del proof_step["goal"]["edge_index"]
-        Gs = [from_networkx(G) for G in Gs]
         B = Batch.from_data_list(Gs)
         for k, v in proof_step.items():
             B[k] = v
@@ -187,7 +179,7 @@ def process_proof(filename, proof_data):
         )
         torch.save(B, path)
         # proof_steps[split].append(B)
-        del B, Gs, env, proof_step
+        del B, env, proof_step, Gs
         gc.collect()
 
 
@@ -205,23 +197,11 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
     print(args)
 
-    iter_proofs(
-        args.data_root, process_proof, include_synthetic=False, show_progress=True
-    )
+    filter_file = \
+        lambda f: f.split(os.path.sep)[2] in \
+            (projs_split['projs_valid'] if not args.filter else [args.filter])
+            # projs_split['projs_train']
 
-    # for split in ["train", "valid"]:
-    #     for i, step in enumerate(proof_steps[split]):
-    #         dirname = os.path.join(args.output, split)
-    #         if not os.path.exists(dirname):
-    #             os.makedirs(dirname)
-    #         if args.filter:
-    #             pickle.dump(
-    #                 step,
-    #                 open(
-    #                     os.path.join(dirname, "%s-%08d.pickle" % (args.filter, i)), "wb"
-    #                 ),
-    #             )
-    #         else:
-    #             pickle.dump(step, open(os.path.join(dirname, "%08d.pickle" % i), "wb"))
-    #
-    # print("\nOutput saved to ", args.output)
+    iter_proofs(
+        args.data_root, process_proof, include_synthetic=False, show_progress=True, filter_file=filter_file
+    )
