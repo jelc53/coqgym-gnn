@@ -124,7 +124,7 @@ def process_proof(filename, proof_data):
             num_discarded += 1
             continue
 
-        pattern = f"**/**{args.filter}-{proof_data['name']}*.pt"
+        pattern = f"**/**{args.filter}-{proof_data['name']}-{i:08d}*.pt"
         if glob(pattern, recursive=True):
             continue
         print(pattern)
@@ -199,8 +199,8 @@ if __name__ == "__main__":
 
     filter_file = \
         lambda f: f.split(os.path.sep)[2] in \
-            (projs_split['projs_valid'] if not args.filter else [args.filter])
-            # projs_split['projs_train']
+            (projs_split['projs_valid'] + projs_split['projs_test']
+            if not args.filter else [args.filter])
 
     iter_proofs(
         args.data_root, process_proof, include_synthetic=False, show_progress=True, filter_file=filter_file
