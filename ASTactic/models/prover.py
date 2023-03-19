@@ -33,6 +33,7 @@ class Prover(nn.Module):
 
         # generate embeddings
         embeddings = self.term_encoder(batch.to(self.opts.device))
+        torch.cuda.empty_cache()
 
         # separate into environment, context, and goal
         j = 0
