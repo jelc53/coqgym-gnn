@@ -136,8 +136,8 @@ def process_proof(filename, proof_data):
             path_name += f"-{path_dict[path_name]}"
             if args.verbose:
                 print(f"Duplicate path: {path_name}")
-        if os.path.exists(path_name + ".pt"): # Original path already exists
-            path = path_name + ".pt"
+        path = path_name + ".pt"
+        if os.path.exists(path): # Original path already exists
             total_count += 1
             continue
         total_count += 1
