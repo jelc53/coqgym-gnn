@@ -3,11 +3,10 @@ import pdb
 import sys
 from itertools import chain
 
-import networkx as nx
 import torch
 import torch.nn as nn
 from tac_grammar import CFG
-from torch_geometric.data import Batch
+from torch_geometric.data import Batch, Data
 from torch_geometric.utils import from_networkx
 
 from .tactic_decoder import TacticDecoder
@@ -16,13 +15,8 @@ from .term_encoder_stackgnn import TermEncoder
 sys.path.append(os.path.abspath("."))
 from time import time
 
-
-def to_nx_graph(term):
-    G = nx.Graph()
-    for i, x in enumerate(term["x"]):
-        G.add_node(i, x=x)
-    G.add_edges_from(term["edge_index"].T.numpy())
-    return G
+def to_pyg_data(term):
+    return Data(x=torch.tensor(term["x"]), edge_index=torch.tensor(term["edge_index"]))
 
 
 class Prover(nn.Module):
@@ -126,13 +120,10 @@ class Prover(nn.Module):
         }
         Gs = []
         for env in proof_step["env"]:
-            G = to_nx_graph(env)
-            Gs.append(G)
+            Gs.append(to_pyg_data(env))
         for lc in proof_step["local_context"]:
-            G = to_nx_graph(lc)
-            Gs.append(G)
-        Gs.append(to_nx_graph(proof_step["goal"]))
-        Gs = [from_networkx(G) for G in Gs]
+            Gs.append(to_pyg_data(lc))
+        Gs.append(to_pyg_data(proof_step["goal"]))
         B = Batch.from_data_list(Gs)
         for k, v in proof_step.items():
             if k not in ["x", "edge_index"]:
