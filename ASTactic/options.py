@@ -83,6 +83,8 @@ def parse_args():
                                                              (only applicable when no_validation == True)",
     )
 
+    parser.add_argument("--device", type=str, default="")
+
     opts = parser.parse_args()
 
     torch.manual_seed(opts.seed)
@@ -100,7 +102,9 @@ def parse_args():
         os.makedirs(os.path.join(opts.log_dir, "predictions"))
         os.makedirs(opts.checkpoint_dir)
 
-    opts.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if opts.device not in ["cuda", "cpu"]:
+        opts.device = "cuda" if torch.cuda.is_available() else "cpu"
+    opts.device = torch.device(opts.device)
     if opts.device.type == "cpu":
         log("using CPU", "WARNING")
 
