@@ -126,18 +126,23 @@ def process_proof(filename, proof_data):
             num_discarded += 1
             continue
 
-        path = os.path.join(
-            args.output, split, f"{proj}-{proof_data['name']}-{i:08d}.pt"
+        path_name = os.path.join(
+            args.output, split, f"{proj}-{proof_data['name']}-{i:08d}"
         )
-        if path_dict.get(path, 0) > 0:
-            # Path exists already and is not unique
-            # print(path, path_dict[path])
-            pass
-        count = path_dict.get(path, 0) + 1
-        path_dict[path] = count
-        if os.path.exists(path):
+        count = path_dict.get(path_name, 0) + 1
+        path_dict[path_name] = count
+
+        if path_dict.get(path_name, 0) > 1:
+            path_name += f"-{path_dict[path_name]}"
+            if args.verbose:
+                print(f"Duplicate path: {path_name}")
+        if os.path.exists(path_name + ".pt"): # Original path already exists
+            path = path_name + ".pt"
             total_count += 1
+            continue
         total_count += 1
+        if args.dry:
+            continue
 
         assert step["command"][1] == "VernacExtend"
         assert step["command"][0].endswith(".")
@@ -200,6 +205,10 @@ if __name__ == "__main__":
     arg_parser.add_argument(
         "--output", type=str, default="./proof_steps/", help="The output file"
     )
+    arg_parser.add_argument(
+        "-d", "--dry", action="store_true", help="Dry run, only print the number of proofs"
+    )
+    arg_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
     arg_parser.add_argument("--filter", type=str, help="filter the proofs")
     args = arg_parser.parse_args()
     print(args)
