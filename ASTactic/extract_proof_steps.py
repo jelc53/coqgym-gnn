@@ -75,6 +75,8 @@ projs_split = json.load(open("../projs_split.json"))
 proof_steps = {"train": [], "valid": [], "test": []}
 
 num_discarded = 0
+total_count = 0
+path_dict = {}
 
 def to_pyg_data(term):
     return Data(x=torch.tensor(term["x"]), edge_index=torch.tensor(term["edge_index"]))
@@ -84,9 +86,9 @@ def process_proof(filename, proof_data):
         is_synthetic = True
     else:
         is_synthetic = False
-    global num_discarded
+    global num_discarded, total_count, path_dict
 
-    if args.filter != filename.split(os.path.sep)[2]:
+    if args.filter and args.filter != filename.split(os.path.sep)[2]:
         return  # skip proof folders not included in filter flag
     # if not md5(filename.encode()).hexdigest().startswith(args.filter):
     #     return
@@ -124,10 +126,18 @@ def process_proof(filename, proof_data):
             num_discarded += 1
             continue
 
-        pattern = f"**/**{args.filter}-{proof_data['name']}-{i:08d}.pt"
-        if glob(pattern, recursive=True):
-            continue
-        print(pattern)
+        path = os.path.join(
+            args.output, split, f"{proj}-{proof_data['name']}-{i:08d}.pt"
+        )
+        if path_dict.get(path, 0) > 0:
+            # Path exists already and is not unique
+            # print(path, path_dict[path])
+            pass
+        count = path_dict.get(path, 0) + 1
+        path_dict[path] = count
+        if os.path.exists(path):
+            total_count += 1
+        total_count += 1
 
         assert step["command"][1] == "VernacExtend"
         assert step["command"][0].endswith(".")
@@ -174,9 +184,6 @@ def process_proof(filename, proof_data):
         B = Batch.from_data_list(Gs)
         for k, v in proof_step.items():
             B[k] = v
-        path = os.path.join(
-            args.output, split, f"{args.filter}-{B['proof_name']}-{B['n_step']:08d}.pt"
-        )
         torch.save(B, path)
         # proof_steps[split].append(B)
         del B, env, proof_step, Gs
@@ -199,9 +206,10 @@ if __name__ == "__main__":
 
     filter_file = \
         lambda f: f.split(os.path.sep)[2] in \
-            (projs_split['projs_valid'] + projs_split['projs_test']
+            (projs_split['projs_valid'] # + projs_split['projs_test']
             if not args.filter else [args.filter])
 
     iter_proofs(
         args.data_root, process_proof, include_synthetic=False, show_progress=True, filter_file=filter_file
     )
+    print(f'{total_count} total, {num_discarded} discarded, {len(path_dict)} unique')
