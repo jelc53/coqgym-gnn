@@ -124,7 +124,7 @@ def process_proof(filename, proof_data):
             num_discarded += 1
             continue
 
-        pattern = f"**/**{args.filter}-{proof_data['name']}-{i:08d}*.pt"
+        pattern = f"**/**{args.filter}-{proof_data['name']}-{i:08d}.pt"
         if glob(pattern, recursive=True):
             continue
         print(pattern)

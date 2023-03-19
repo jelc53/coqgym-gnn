@@ -72,9 +72,12 @@ if __name__ == "__main__":
     parser.add_argument("--nonterminals_feature_dim", type=int, default=32)
 
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--device", type=str, default="")
     opts = parser.parse_args()
+    if opts.device not in ["cuda", "cpu"]:
+        opts.device = "cuda" if torch.cuda.is_available() else "cpu"
+    opts.device = torch.device(opts.device)
     log(opts)
-    opts.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if opts.device.type == "cpu":
         log("using CPU", "WARNING")
 
