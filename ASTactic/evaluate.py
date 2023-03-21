@@ -1,3 +1,4 @@
+from fileinput import filename
 import torch
 import numpy as np
 import random
@@ -118,6 +119,8 @@ if __name__ == "__main__":
             # if md5(f.encode("utf-8")).hexdigest().startswith(opts.filter)
             if opts.filter in f
         ]
+    # if opts.filter != filename.split(os.path.sep)[2]:
+    #     return
 
     print(files)
     results = []
