@@ -1,5 +1,6 @@
 # CoqGym-GNN
-GNN extension and improvements on [CoqGym](https://github.com/princeton-vl/CoqGym) repository. 
+GNN extension and improvements on [CoqGym](https://github.com/princeton-vl/CoqGym) repository.
+
 ![Example proof](images/example_proof.jpg)
 
 Note, this repo includes the codebase of Coq, SerAPI, CoqHammer, and the Coq projects in coq_projects.
