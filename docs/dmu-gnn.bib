@@ -1,0 +1,239 @@
+
+@software{noauthor_coqgym_2023,
+	title = {{CoqGym}},
+	rights = {{LGPL}-2.1},
+	url = {https://github.com/princeton-vl/CoqGym},
+	abstract = {A Learning Environment for Theorem Proving with the Coq proof assistant},
+	publisher = {Princeton Vision \& Learning Lab},
+	urldate = {2023-01-20},
+	date = {2023-01-14},
+	note = {original-date: 2019-05-24T22:31:20Z},
+	keywords = {icml-2019, machine-learning, theorem-proving},
+}
+
+@misc{coqgym,
+	title = {Learning to Prove Theorems via Interacting with Proof Assistants},
+	url = {http://arxiv.org/abs/1905.09381},
+	doi = {10.48550/arXiv.1905.09381},
+	abstract = {Humans prove theorems by relying on substantial high-level reasoning and problem-specific insights. Proof assistants offer a formalism that resembles human mathematical reasoning, representing theorems in higher-order logic and proofs as high-level tactics. However, human experts have to construct proofs manually by entering tactics into the proof assistant. In this paper, we study the problem of using machine learning to automate the interaction with proof assistants. We construct {CoqGym}, a large-scale dataset and learning environment containing 71K human-written proofs from 123 projects developed with the Coq proof assistant. We develop {ASTactic}, a deep learning-based model that generates tactics as programs in the form of abstract syntax trees ({ASTs}). Experiments show that {ASTactic} trained on {CoqGym} can generate effective tactics and can be used to prove new theorems not previously provable by automated methods. Code is available at https://github.com/princeton-vl/{CoqGym}.},
+	number = {{arXiv}:1905.09381},
+	publisher = {{arXiv}},
+	author = {Yang, Kaiyu and Deng, Jia},
+	urldate = {2023-01-20},
+	date = {2019-05-21},
+	eprinttype = {arxiv},
+	eprint = {1905.09381 [cs, stat]},
+	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning, Computer Science - Artificial Intelligence, Computer Science - Logic in Computer Science},
+	file = {arXiv Fulltext PDF:/home/danj/Zotero/storage/24PHAUIT/Yang and Deng - 2019 - Learning to Prove Theorems via Interacting with Pr.pdf:application/pdf;arXiv.org Snapshot:/home/danj/Zotero/storage/I2WCKDEN/1905.html:text/html},
+}
+
+@article{smolka_modeling_nodate,
+	title = {Modeling and Proving in Computational Type Theory Using the Coq Proof Assistant},
+	author = {Smolka, Gert},
+	langid = {english},
+	file = {Smolka - Modeling and Proving in Computational Type Theory .pdf:/home/danj/Zotero/storage/HC5EJT3R/Smolka - Modeling and Proving in Computational Type Theory .pdf:application/pdf},
+}
+
+@online{noauthor_project_aa228_cs224w_nodate,
+	title = {project\_aa228\_cs224w},
+	url = {https://www.overleaf.com/project/63cac5adde4f8b44ee397428},
+	abstract = {An online {LaTeX} editor that’s easy to use. No installation, real-time collaboration, version control, hundreds of {LaTeX} templates, and more.},
+	urldate = {2023-01-20},
+	langid = {english},
+	file = {Snapshot:/home/danj/Zotero/storage/L3LIIWYW/63cac5adde4f8b44ee397428.html:text/html},
+}
+
+@misc{gan,
+	title = {Graph Attention Networks},
+	url = {http://arxiv.org/abs/1710.10903},
+	doi = {10.48550/arXiv.1710.10903},
+	abstract = {We present graph attention networks ({GATs}), novel neural network architectures that operate on graph-structured data, leveraging masked self-attentional layers to address the shortcomings of prior methods based on graph convolutions or their approximations. By stacking layers in which nodes are able to attend over their neighborhoods' features, we enable (implicitly) specifying different weights to different nodes in a neighborhood, without requiring any kind of costly matrix operation (such as inversion) or depending on knowing the graph structure upfront. In this way, we address several key challenges of spectral-based graph neural networks simultaneously, and make our model readily applicable to inductive as well as transductive problems. Our {GAT} models have achieved or matched state-of-the-art results across four established transductive and inductive graph benchmarks: the Cora, Citeseer and Pubmed citation network datasets, as well as a protein-protein interaction dataset (wherein test graphs remain unseen during training).},
+	number = {{arXiv}:1710.10903},
+	publisher = {{arXiv}},
+	author = {Veličković, Petar and Cucurull, Guillem and Casanova, Arantxa and Romero, Adriana and Liò, Pietro and Bengio, Yoshua},
+	urldate = {2023-01-20},
+	date = {2018-02-04},
+	eprinttype = {arxiv},
+	eprint = {1710.10903 [cs, stat]},
+	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning, Computer Science - Artificial Intelligence, Computer Science - Social and Information Networks},
+	file = {arXiv Fulltext PDF:/home/danj/Zotero/storage/YATPHYNA/Veličković et al. - 2018 - Graph Attention Networks.pdf:application/pdf;arXiv.org Snapshot:/home/danj/Zotero/storage/YBATFH5A/1710.html:text/html},
+}
+
+@article{rep,
+	title = {Graph Representation Learning},
+	abstract = {Graph-structured data is ubiquitous throughout the natural and social sciences, from telecommunication networks to quantum chemistry. Building relational inductive biases into deep learning architectures is crucial if we want systems that can learn, reason, and generalize from this kind of data. Recent years have seen a surge in research on graph representation learning, including techniques for deep graph embeddings, generalizations of convolutional neural networks to graph-structured data, and neural message-passing approaches inspired by belief propagation. These advances in graph representation learning have led to new state-of-the-art results in numerous domains, including chemical synthesis, 3D-vision, recommender systems, question answering, and social network analysis.},
+	author = {Hamilton, William L},
+	langid = {english},
+	file = {Hamilton - Graph Representation Learning.pdf:/home/danj/Zotero/storage/HAIFV89B/Hamilton - Graph Representation Learning.pdf:application/pdf},
+}
+
+@misc{hol,
+	title = {Graph Representations for Higher-Order Logic and Theorem Proving},
+	url = {http://arxiv.org/abs/1905.10006},
+	doi = {10.48550/arXiv.1905.10006},
+	abstract = {This paper presents the first use of graph neural networks ({GNNs}) for higher-order proof search and demonstrates that {GNNs} can improve upon state-of-the-art results in this domain. Interactive, higher-order theorem provers allow for the formalization of most mathematical theories and have been shown to pose a significant challenge for deep learning. Higher-order logic is highly expressive and, even though it is well-structured with a clearly defined grammar and semantics, there still remains no well-established method to convert formulas into graph-based representations. In this paper, we consider several graphical representations of higher-order logic and evaluate them against the {HOList} benchmark for higher-order theorem proving.},
+	number = {{arXiv}:1905.10006},
+	publisher = {{arXiv}},
+	author = {Paliwal, Aditya and Loos, Sarah and Rabe, Markus and Bansal, Kshitij and Szegedy, Christian},
+	urldate = {2023-01-20},
+	date = {2019-09-12},
+	eprinttype = {arxiv},
+	eprint = {1905.10006 [cs, stat]},
+	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning, Computer Science - Artificial Intelligence, Computer Science - Logic in Computer Science},
+	file = {arXiv Fulltext PDF:/home/danj/Zotero/storage/JGELKWD4/Paliwal et al. - 2019 - Graph Representations for Higher-Order Logic and T.pdf:application/pdf;arXiv.org Snapshot:/home/danj/Zotero/storage/2HCIWNKN/1905.html:text/html},
+}
+
+@online{noauthor_systemrescue_nodate,
+	title = {{SystemRescue} - Partitions attributes},
+	url = {https://www.system-rescue.org/disk-partitioning/Partitions-attributes/},
+	urldate = {2023-01-23},
+	file = {SystemRescue - Partitions attributes:/home/danj/Zotero/storage/SDAWZD3K/Partitions-attributes.html:text/html},
+}
+
+@online{noauthor_snap-stanfordgraphgym_nodate,
+	title = {snap-stanford/{GraphGym}: Platform for designing and evaluating Graph Neural Networks ({GNN})},
+	url = {https://github.com/snap-stanford/GraphGym},
+	urldate = {2023-01-30},
+	file = {snap-stanford/GraphGym\: Platform for designing and evaluating Graph Neural Networks (GNN):/home/danj/Zotero/storage/UM4IC2MF/GraphGym.html:text/html},
+}
+
+@misc{hier,
+	title = {Hierarchical Graph Representation Learning with Differentiable Pooling},
+	url = {http://arxiv.org/abs/1806.08804},
+	abstract = {Recently, graph neural networks ({GNNs}) have revolutionized the ﬁeld of graph representation learning through effectively learned node embeddings, and achieved state-of-the-art results in tasks such as node classiﬁcation and link prediction. However, current {GNN} methods are inherently ﬂat and do not learn hierarchical representations of graphs—a limitation that is especially problematic for the task of graph classiﬁcation, where the goal is to predict the label associated with an entire graph. Here we propose {DIFFPOOL}, a differentiable graph pooling module that can generate hierarchical representations of graphs and can be combined with various graph neural network architectures in an end-to-end fashion. {DIFFPOOL} learns a differentiable soft cluster assignment for nodes at each layer of a deep {GNN}, mapping nodes to a set of clusters, which then form the coarsened input for the next {GNN} layer. Our experimental results show that combining existing {GNN} methods with {DIFFPOOL} yields an average improvement of 5–10\% accuracy on graph classiﬁcation benchmarks, compared to all existing pooling approaches, achieving a new state-of-the-art on four out of ﬁve benchmark data sets.},
+	number = {{arXiv}:1806.08804},
+	publisher = {{arXiv}},
+	author = {Ying, Rex and You, Jiaxuan and Morris, Christopher and Ren, Xiang and Hamilton, William L. and Leskovec, Jure},
+	urldate = {2023-02-07},
+	date = {2019-02-20},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1806.08804 [cs, stat]},
+	keywords = {Computer Science - Machine Learning, Computer Science - Neural and Evolutionary Computing, Computer Science - Social and Information Networks, Statistics - Machine Learning},
+	file = {Ying et al. - 2019 - Hierarchical Graph Representation Learning with Di.pdf:/home/danj/Zotero/storage/PD2VNMI2/Ying et al. - 2019 - Hierarchical Graph Representation Learning with Di.pdf:application/pdf},
+}
+
+
+@article{TreeLSTM,
+  author    = {Kai Sheng Tai and
+               Richard Socher and
+               Christopher D. Manning},
+  title     = {Improved Semantic Representations From Tree-Structured Long Short-Term
+               Memory Networks},
+  journal   = {CoRR},
+  volume    = {abs/1503.00075},
+  year      = {2015},
+  url       = {http://arxiv.org/abs/1503.00075},
+  eprinttype = {arXiv},
+  eprint    = {1503.00075},
+  timestamp = {Mon, 13 Aug 2018 16:48:20 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/TaiSM15.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@InProceedings{graphgym,
+  title = {Design Space for Graph Neural Networks},
+  author = {You, Jiaxuan and Ying, Rex and Leskovec, Jure},
+  booktitle = {NeurIPS},
+  year = {2020}
+}
+
+@article{alphago,
+  author    = {Yutian Chen and
+               Aja Huang and
+               Ziyu Wang and
+               Ioannis Antonoglou and
+               Julian Schrittwieser and
+               David Silver and
+               Nando de Freitas},
+  title     = {Bayesian Optimization in AlphaGo},
+  journal   = {CoRR},
+  volume    = {abs/1812.06855},
+  year      = {2018},
+  url       = {http://arxiv.org/abs/1812.06855},
+  eprinttype = {arXiv},
+  eprint    = {1812.06855},
+  timestamp = {Tue, 01 Jan 2019 15:01:25 +0100},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1812-06855.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{emb,
+  author    = {Chi Thang Duong and
+               Thanh Dat Hoang and
+               Ha The Hien Dang and
+               Quoc Viet Hung Nguyen and
+               Karl Aberer},
+  title     = {On Node Features for Graph Neural Networks},
+  journal   = {CoRR},
+  volume    = {abs/1911.08795},
+  year      = {2019},
+  url       = {http://arxiv.org/abs/1911.08795},
+  eprinttype = {arXiv},
+  eprint    = {1911.08795},
+  timestamp = {Tue, 03 Dec 2019 14:15:54 +0100},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1911-08795.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@misc{layernorm,
+      title={Layer Normalization}, 
+      author={Jimmy Lei Ba and Jamie Ryan Kiros and Geoffrey E. Hinton},
+      year={2016},
+      eprint={1607.06450},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML}
+}
+
+@book{dmu,
+    author = {Kochenderfer, Mykel J.},
+    title = "{Decision Making Under Uncertainty: Theory and Application}",
+    publisher = {The MIT Press},
+    year = {2015},
+    month = {07},
+    abstract = "{An introduction to decision making under uncertainty from a computational perspective, covering both theory and applications ranging from speech recognition to airborne collision avoidance.Many important problems involve decision making under uncertainty—that is, choosing actions based on often imperfect observations, with unknown outcomes. Designers of automated decision support systems must take into account the various sources of uncertainty while balancing the multiple objectives of the system. This book provides an introduction to the challenges of decision making under uncertainty from a computational perspective. It presents both the theory behind decision making models and algorithms and a collection of example applications that range from speech recognition to aircraft collision avoidance.Focusing on two methods for designing decision agents, planning and reinforcement learning, the book covers probabilistic models, introducing Bayesian networks as a graphical model that captures probabilistic relationships between variables; utility theory as a framework for understanding optimal decision making under uncertainty; Markov decision processes as a method for modeling sequential problems; model uncertainty; state uncertainty; and cooperative decision making involving multiple interacting agents. A series of applications shows how the theoretical concepts can be applied to systems for attribute-based person search, speech applications, collision avoidance, and unmanned aircraft persistent surveillance.Decision Making Under Uncertainty unifies research from different communities using consistent notation, and is accessible to students and researchers across engineering disciplines who have some prior exposure to probability theory and calculus. It can be used as a text for advanced undergraduate and graduate students in fields including computer science, aerospace and electrical engineering, and management science. It will also be a valuable professional reference for researchers in a variety of disciplines.}",
+    isbn = {9780262331708},
+    doi = {10.7551/mitpress/10187.001.0001},
+    url = {https://doi.org/10.7551/mitpress/10187.001.0001},
+}
+
+@article{prelu,
+  author    = {Jiaxuan You and
+               Rex Ying and
+               Jure Leskovec},
+  title     = {Design Space for Graph Neural Networks},
+  journal   = {CoRR},
+  volume    = {abs/2011.08843},
+  year      = {2020},
+  url       = {https://arxiv.org/abs/2011.08843},
+  eprinttype = {arXiv},
+  eprint    = {2011.08843},
+  timestamp = {Wed, 18 Nov 2020 16:48:35 +0100},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-2011-08843.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{graphsage,
+  author    = {William L. Hamilton and
+               Rex Ying and
+               Jure Leskovec},
+  title     = {Inductive Representation Learning on Large Graphs},
+  journal   = {CoRR},
+  volume    = {abs/1706.02216},
+  year      = {2017},
+  url       = {http://arxiv.org/abs/1706.02216},
+  eprinttype = {arXiv},
+  eprint    = {1706.02216},
+  timestamp = {Mon, 13 Aug 2018 16:46:12 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/HamiltonYL17.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@misc{gat,
+      title={Graph Attention Networks}, 
+      author={Petar Veličković and Guillem Cucurull and Arantxa Casanova and Adriana Romero and Pietro Liò and Yoshua Bengio},
+      year={2018},
+      eprint={1710.10903},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML}
+}
