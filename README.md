@@ -44,36 +44,89 @@ These implementations are split between many branches to provide easier manageme
 
 ### 2.1 Pipeline Modifications
 
-In order to learn using GNNs efficiently, `x` and `edge_index` information need to be extracted from the `lark.Tree` representations of ASTs. This computation is very costly, so it is delegated to the proof extraction stage. Here are the pipeline modifications that facilitate this change:
+In order to learn using GNNs efficiently, `x` and `edge_index` information need to be extracted from the `lark.tree.Tree` representations of ASTs. This computation is very costly, so it is delegated to the proof extraction stage. Here are the pipeline modifications that facilitate this change:
 
 - Modified proof step data representation from `dict` to `torch_geometric.data.Batch` objects
 - Modified merge operation to facilitate `Batch` merging
 - Used `torch_geometric.data.Dataset` object over `torch.data.Dataset` object
 - Changed saving protocol from `.pickle` to PyTorch-optimized `.pt` using `torch.save()`
 
-More explicitly, a comparison of the proof steps is outlined below:
+More explicitly, a comparison of the proof step structures is outlined below:
 
 **CoqGym proof step**:
-```json
-
+```python
+{
+    file : str,
+    proof_name : str,
+    n_step : int,
+    env : [
+        {
+            qualid: str,
+            ast : lark.tree.Tree
+        },
+        ...
+    ],
+    local_context : [
+        {
+            ident : str
+            ast : lark.tree.Tree
+        },
+        ...
+    ],
+    goal : lark.tree.Tree,
+    tactic_actions : int | str,
+    tactic_str : str,
+}
 ```
 
 **CoqGym-GNN proof step**:
-```json
+```python
+torch_geometric.data.Batch (
+    x : tensor.Tensor,
+    edge_index : tensor.Tensor,
+    batch : tensor.Tensor,
+    # Some modifications to original CoqGym attributes
+    file : str,
+    proof_name : str,
+    n_step : int,
+    env : [
+        {
+            qualid: str,
+            ast : lark.tree.Tree
+        },
+        ...
+    ],
+    local_context : [
+        {
+            ident : str
+            ast : lark.tree.Tree
+        },
+        ...
+    ],
+    goal : lark.tree.Tree,
+    tactic_actions : int | str,
+    tactic_str : str,
+
+)
 ```
 
-Along with this, optimizations were made to the data generation process which facilitates easier updates to the extracted dataset and lighter computational resource requirements. Specifically:
+Along with these changes, optimizations were made to the data generation process which facilitates easier updates to the extracted dataset and lighter computational resource requirements. Specifically:
 
 - Added `filter_file` option in `iter_proofs` and its derivatives to skip loading of proof if not being considered
+- Save files as data is generated, so a monolithic list is not needed to keep track of data.
 - Added multi-processing script for both `extract_proof.py` and `evaluate.py` for more efficient use of computational resources.
 
 ### 2.2 Design Modifications
 
 
-
-
+TODO: process below modifications
+- Implement 2-layer GNN with modular convolutions
+- Integer embeddings of nodes
+- Added layer-norms and Prelu activations to attention mechanism
 
 ## 3. Setup and Installation
+
+The setup and installation required
 
 
 ## 4. FAQ and Known Bugs
