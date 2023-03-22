@@ -8,6 +8,7 @@ Note, this repo includes the codebase of Coq, SerAPI, CoqHammer, and the Coq pro
 
 ## Table of Contents
 
+
 0. [Notation](#0-notation)
 1. [Project Goals](#1-goals)
 2. [Main Contributions](#2-main-contributions)
@@ -15,8 +16,8 @@ Note, this repo includes the codebase of Coq, SerAPI, CoqHammer, and the Coq pro
     - [Design Modifications](#22-design-modifications)
 3. [Setup and Installation](#3-setup-and-installation)
 4. [Running train and test pipelines](#4-running-train-and-testing-pipelines)
-5. [FAQ and Known Bugs](#4-faq-and-known-bugs)
-6. [Resources](#5-resources)
+5. [FAQ and Known Bugs](#5-faq-and-known-bugs)
+6. [Resources](#6-resources)
 
 
 ## 0. Notation
@@ -75,7 +76,7 @@ More explicitly, a comparison of the proof step structures is outlined below:
         ...
     ],
     goal : lark.tree.Tree,
-    tactic_actions : int | str,
+    tactic_actions : list[int | str],
     tactic_str : str,
 }
 ```
@@ -151,7 +152,7 @@ CoqGym has many dependencies and is nontrivial to set up correctly. The followin
 1. Clone the repository: `git clone https://github.com/danjenson/CoqGym-GNN.git`
 1. Install Coq, SerAPI and CoqHammer: `cd CoqGym && source install.sh`
 1. Build the Coq projects (can take a while): `cd coq_projects && make && cd ..`
-1. Setup the python environment (see requirements.txt for version details): 
+1. Setup the python environment (see requirements.txt for version details):
   - `curl https://pyenv.run | bash`
   -  `pyenv install 3.7.1 && pyenv local 3.7.1`
   - `pip install numpy ipython lark-parser==0.6.5 lmdb==0.94 pandas==0.24.2 pexpect==4.6.0 sexpdata==0.0.3 progressbar2`
@@ -172,7 +173,7 @@ CoqGym has many dependencies and is nontrivial to set up correctly. The followin
 
 Run `python eval_env.py` to check if it terminates normally without raising an error.
 
-Now you are ready to interact with CoqGym! 
+Now you are ready to interact with CoqGym!
 
 
 ## 4 Running train and testing pipelines
@@ -189,11 +190,11 @@ Directory |  # files
 proof_steps/train | 121,644
 proof_steps/valid | 68,180
 
-We also provide pre-extracted download tarballs for `train` and `valid` proof steps [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA).  
+We also provide pre-extracted download tarballs for `train` and `valid` proof steps [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA).
 
 ### 4.2 Training the encoder-decoder models
 
-To train on the proof steps in training + validation set, run the following command from the ASTactic directory: 
+To train on the proof steps in training + validation set, run the following command from the ASTactic directory:
 `python main.py --no_validation --exp_id <model_id> --model_type <model_type> --heads <num_heads>`
 
 Model checkpoints will be saved to runs/astactic/checkpoints/. See options.py for command line options.
@@ -210,13 +211,13 @@ To test a trained model on unseen proof libraries, run the following command fro
 * To execute testing just a single proof (e.g. `get_set_name` from `../data/StructTact/Assoc.json`):
   `python evaluate.py ours ours-TEST --path runs/astactic/checkpoints/model_003.pth --file ../data/StructTact/Assoc.json --proof "get_set_same"`
 
-* Testing an automated tactic X (may be "auto", "trivial", "easy", "intuition", or "hammer"):   
-    `python -u evaluate.py X X-TEST --file ../data/StructTact/Assoc.json --proof "get_set_same"` 
+* Testing an automated tactic X (may be "auto", "trivial", "easy", "intuition", or "hammer"):
+    `python -u evaluate.py X X-TEST --file ../data/StructTact/Assoc.json --proof "get_set_same"`
 
-* Testing ASTactic+X:   
+* Testing ASTactic+X:
     `python -u evaluate.py ours+X ours+X-TEST --path runs/astactic/checkpoints/model_003.pth --file ../data/StructTact/Assoc.json --proof "get_set_same"`
 
-*Caveat*: Testing is computationally expensive, but the workloads are very parallelizable. We provide the code for this in `multiprocess_test.py`. 
+*Caveat*: Testing is computationally expensive, but the workloads are very parallelizable. We provide the code for this in `multiprocess_test.py`.
 
 
 ## 5. FAQ and Known Bugs
