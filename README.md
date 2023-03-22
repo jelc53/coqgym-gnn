@@ -9,15 +9,14 @@ Note, this repo includes the codebase of Coq, SerAPI, CoqHammer, and the Coq pro
 ## Table of Contents
 
 0. [Notation](#0-notation)
-1. [Goals](#1-goals)
+1. [Project Goals](#1-goals)
 2. [Main Contributions](#2-main-contributions)
     - [Pipeline Modifications](#21-pipeline-modifications)
     - [Design Modifications](#22-design-modifications)
-4. [Setup and Installation](#3-setup-and-installation)
-3. [FAQ and Known Bugs](#4-faq-and-known-bugs)
-5. [Resources](#5-resources)
-6. [Reproducing Our Work](#6-reproducing-our-work)
-7. [Future Work](#7-future-work)
+3. [Setup and Installation](#3-setup-and-installation)
+4. [Running train and test pipelines](#4-running-train-and-testing-pipelines)
+5. [FAQ and Known Bugs](#4-faq-and-known-bugs)
+6. [Resources](#5-resources)
 
 
 ## 0. Notation
@@ -28,7 +27,7 @@ Here are some important notation to understand the below explanations:
 - `x`: $\mathbb{R} ^{|V|}$ node list of node types, referenced by index into the non-terminal node information. Child-first ordering enforced by `traverse_postorder`
 - `edge_index`: $\mathbb{R} ^ 2 \times \mathbb{R}^{|E|}$ edge list referenced by index into `x`.
 
-## 1. Goals
+## 1. Project Goals
 
 With the advent of recent progress in graph neural networks (GNNs), we hope to improve on the original CoqGym results by replacing their TreeLSTM encoder module with various GNN implementations.
 
@@ -210,8 +209,3 @@ TODO: Add more?
 <!-- Add resources on pre-built data and  -->
 
 Data can be obtained from the original CoqGym repo [here](https://github.com/princeton-vl/CoqGym#14-downloading-the-pre-extracted-proofs-recommended)
-
-## 6. Reproducing Our Work
-
-
-## 7. Future Work
