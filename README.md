@@ -27,9 +27,11 @@ Here are some important notation to understand the below explanations:
 - `x`: $\mathbb{R} ^{|V|}$ node list of node types, referenced by index into the non-terminal node information. Child-first ordering enforced by `traverse_postorder`
 - `edge_index`: $\mathbb{R} ^ 2 \times \mathbb{R}^{|E|}$ edge list referenced by index into `x`.
 
+
 ## 1. Project Goals
 
 With the advent of recent progress in graph neural networks (GNNs), we hope to improve on the original CoqGym results by replacing their TreeLSTM encoder module with various GNN implementations.
+
 
 ## 2. Main Contributions
 
@@ -131,6 +133,7 @@ Some notable design modifications in both the new GNN encoder and the existing R
   - Used PreLu activations between each layer
   - Used batch normalization within each layer
 
+
 ## 3. Setup and Installation
 
 CoqGym has many dependencies and is nontrivial to set up correctly. The following instruction detail how to obtain the CoqGym dataset and build the interaction environment natively.
@@ -138,9 +141,9 @@ CoqGym has many dependencies and is nontrivial to set up correctly. The followin
 ### 3.1 Required dependencies
 
 - [OCaml Package Manager](https://opam.ocaml.org/) (OPAM) is used to install OCaml and the corresponding packages.
-- [Anaconda Distribution](https://www.anaconda.com/products/distribution) is used to install python and manage python-specific packages. 
+<!-- - [Anaconda Distribution](https://www.anaconda.com/products/distribution) is used to install python and manage python-specific packages.  -->
 - [Lightning Memory-Mapped Database](https://www.symas.com/lmdb) (LMDB) is used to store S-expressions in `*.json` files.
-- [Ruby](https://www.symas.com/lmdb) is used for xyz
+<!-- - [Ruby](https://www.symas.com/lmdb) is used for xyz -->
 
 ### 3.2 Building Coq, SerAPI, CoqHammer, and the Coq Projects
 
@@ -148,7 +151,12 @@ CoqGym has many dependencies and is nontrivial to set up correctly. The followin
 1. Clone the repository: `git clone https://github.com/danjenson/CoqGym-GNN.git`
 1. Install Coq, SerAPI and CoqHammer: `cd CoqGym && source install.sh`
 1. Build the Coq projects (can take a while): `cd coq_projects && make && cd ..`
-1. Create and activate the conda environment: `conda env create -f coq_gym.yml && conda activate coq_gym`
+1. Setup the python environment (see requirements.txt for version details): 
+  - `curl https://pyenv.run | bash`
+  -  `pyenv install 3.7.1 && pyenv local 3.7.1`
+  - `pip install numpy ipython lark-parser==0.6.5 lmdb==0.94 pandas==0.24.2 pexpect==4.6.0 sexpdata==0.0.3 progressbar2`
+  - `pip install torch pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv torch_geometric -f https://data.pyg.org/whl/torch-1.13.0+cu117.html`
+<!-- *Note*: If you would prefer to use Anaconda run: `conda env create -f coq_gym.yml && conda activate coq_gym` -->
 
 *Note*: [Coq](https://github.com/coq/coq), [SerAPI](https://github.com/ejgallego/coq-serapi), [CoqHammer](https://github.com/lukaszcz/coqhammer), and the Coq projects in [coq_projects](./coq_projects) directory are indendent software projects with their own code repositories, but please follow the instructions above to build the specific versions we need.
 
@@ -166,11 +174,13 @@ Run `python eval_env.py` to check if it terminates normally without raising an e
 
 Now you are ready to interact with CoqGym! 
 
+
 ## 4 Running train and testing pipelines
 
 ### 4.1 Extracting proof steps
 
-Our encoder-decoder models are trained on individual proof stps
+Our encoder-decoder models are trained on individual proof steps
+
 ### 4.2 Training the encoder-decoder models
 
 Here we describe how to train our models on CoqGym.
