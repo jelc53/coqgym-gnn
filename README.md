@@ -179,23 +179,47 @@ Now you are ready to interact with CoqGym!
 
 ### 4.1 Extracting proof steps
 
-Our encoder-decoder models are trained on individual proof steps
+Our encoder-decoder models are trained on individual proof steps rather than entire proofs. This allows use to directly use teacher forcing.
+
+To extract proof steps from the CoqGym dataset, run `python extract_proof_steps.py` from the ASTactic directory. Note, this can take a while (8-12 hours). To help, we provide an alternate multiprocessing script to parallelize extraction across proof libraries (coq projects) `python multiprocess_extract.py`.
+
+The extracted proof steps are in proof_steps/. You can double-check the number of proof steps to make sure everything works as expected:
+Directory |  # files
+------------ | -------------
+proof_steps/train | 121,644
+proof_steps/valid | 68,180
+
+We also provide pre-extracted download tarballs for `train` and `valid` proof steps [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA).  
 
 ### 4.2 Training the encoder-decoder models
 
-Here we describe how to train our models on CoqGym.
-xx 
+To train on the proof steps in training + validation set, run the following command from the ASTactic directory: 
+`python main.py --no_validation --exp_id <model_id> --model_type <model_type> --heads <num_heads>`
+
+Model checkpoints will be saved to runs/astactic/checkpoints/. See options.py for command line options.
+
+CoqGym's pre-trained astatic model can be downloaded [here](https://drive.google.com/drive/folders/1AzLaEpoGS3BPMUz9Bl63MHAFRqlF4CtH?usp=sharing).
+
+Our pre-trained GNN models can be downloaded [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA)
+
+### 4.3 Testing the rl agent
+
+To test a trained model on unseen proof libraries, run the following command from the ASTactic directory:
+`python evaluate ours <model_id> --path runs/<model_id>/checkpoints/model_<epoch#>.pth --filter <proof_library_name>`
+
+* To execute testing just a single proof (e.g. `get_set_name` from `../data/StructTact/Assoc.json`):
+  `python evaluate.py ours ours-TEST --path runs/astactic/checkpoints/model_003.pth --file ../data/StructTact/Assoc.json --proof "get_set_same"`
+
+* Testing an automated tactic X (may be "auto", "trivial", "easy", "intuition", or "hammer"):   
+    `python -u evaluate.py X X-TEST --file ../data/StructTact/Assoc.json --proof "get_set_same"` 
+
+* Testing ASTactic+X:   
+    `python -u evaluate.py ours+X ours+X-TEST --path runs/astactic/checkpoints/model_003.pth --file ../data/StructTact/Assoc.json --proof "get_set_same"`
+
+*Caveat*: Testing is computationally expensive, but the workloads are very parallelizable. We provide the code for this in `multiprocess_test.py`. 
 
 
-
-
-
-
-
-
-
-
-## 4. FAQ and Known Bugs
+## 5. FAQ and Known Bugs
 
 - Error in `source install.sh`
   - Double check requirements
@@ -214,7 +238,7 @@ xx
 TODO: Add more?
 
 
-## 5. Resources
+## 6. Resources
 
 <!-- Add resources on pre-built data and  -->
 
