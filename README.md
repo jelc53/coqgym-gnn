@@ -126,7 +126,56 @@ TODO: process below modifications
 
 ## 3. Setup and Installation
 
-The setup and installation required
+CoqGym has many dependencies and is nontrivial to set up correctly. The following instruction detail how to obtain the CoqGym dataset and build the interaction environment natively.
+
+### 3.1 Required dependencies
+
+- [OCaml Package Manager](https://opam.ocaml.org/) (OPAM) is used to install OCaml and the corresponding packages.
+- [Anaconda Distribution](https://www.anaconda.com/products/distribution) is used to install python and manage python-specific packages. 
+- [Lightning Memory-Mapped Database](https://www.symas.com/lmdb) (LMDB) is used to store S-expressions in `*.json` files.
+- [Ruby](https://www.symas.com/lmdb) is used for xyz
+
+### 3.2 Building Coq, SerAPI, CoqHammer, and the Coq Projects
+
+1. Create an OPAM switch for OCaml 4.07.1+flambda: `opam switch create 4.07.1+flambda && eval $(opam env)`
+1. Clone the repository: `git clone https://github.com/danjenson/CoqGym-GNN.git`
+1. Install Coq, SerAPI and CoqHammer: `cd CoqGym && source install.sh`
+1. Build the Coq projects (can take a while): `cd coq_projects && make && cd ..`
+1. Create and activate the conda environment: `conda env create -f coq_gym.yml && conda activate coq_gym`
+
+*Note*: [Coq](https://github.com/coq/coq), [SerAPI](https://github.com/ejgallego/coq-serapi), [CoqHammer](https://github.com/lukaszcz/coqhammer), and the Coq projects in [coq_projects](./coq_projects) directory are indendent software projects with their own code repositories, but please follow the instructions above to build the specific versions we need.
+
+### 3.3 Downloading the pre-extracted proofs (our data)
+
+1. Download the CoqGym dataset [here](https://drive.google.com/drive/folders/149m_17VkYYkl0kdSB4AI8zodCuTmPaA6?usp=sharing)
+
+2. Unzip the data and set the paths: `python unzip_data.py`
+
+*Caveat*: The second step sets the absolute paths in the data. You have to re-do it whenever the absolote path of the `data/` directory changes (e.g. after moving the entire repo to another directory).
+
+### 3.4 Check whether everything is setup correctly
+
+Run `python eval_env.py` to check if it terminates normally without raising an error.
+
+Now you are ready to interact with CoqGym! 
+
+## 4 Running train and testing pipelines
+
+### 4.1 Extracting proof steps
+
+Our encoder-decoder models are trained on individual proof stps
+### 4.2 Training the encoder-decoder models
+
+Here we describe how to train our models on CoqGym.
+xx 
+
+
+
+
+
+
+
+
 
 
 ## 4. FAQ and Known Bugs
