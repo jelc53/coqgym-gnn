@@ -30,7 +30,7 @@ Here are some important notation to understand the below explanations:
 
 ## 1. Goals
 
-With the advent of recent progress in graph neural networks (GNNs), we hope to improve on the original CoqGym results by replacing their TreeLSTM module with various GNN implementations.
+With the advent of recent progress in graph neural networks (GNNs), we hope to improve on the original CoqGym results by replacing their TreeLSTM encoder module with various GNN implementations.
 
 ## 2. Main Contributions
 
@@ -98,15 +98,19 @@ torch_geometric.data.Batch (
     ],
     local_context : [
         {
-            ident : str
+            ident : str,
+            text : str,
             ast : lark.tree.Tree
         },
         ...
     ],
-    goal : lark.tree.Tree,
+    goal : {
+        id : int,
+        text : str,
+        ast : lark.tree.Tree
+    }
     tactic_actions : int | str,
     tactic_str : str,
-
 )
 ```
 
@@ -118,11 +122,15 @@ Along with these changes, optimizations were made to the data generation process
 
 ### 2.2 Design Modifications
 
+Some notable design modifications in both the new GNN encoder and the existing RL pipeline were made for testing purposes, which are listed below
 
-TODO: process below modifications
-- Implement 2-layer GNN with modular convolutions
-- Integer embeddings of nodes
-- Added layer-norms and Prelu activations to attention mechanism
+- 2-layer GNN with modular convolutions
+  - Multi-headed Graph Attention (GAT) or GraphSage convolutions
+- Used `torch_geometric.graphgym.models.encoder.IntegerFeatureEncoder` over one-hot encodings of node types
+- Increased expressiveness of attention module in the decoder
+  - Added an extra layer
+  - Used PreLu activations between each layer
+  - Used batch normalization within each layer
 
 ## 3. Setup and Installation
 
@@ -180,11 +188,28 @@ xx
 
 ## 4. FAQ and Known Bugs
 
+- Error in `source install.sh`
+  - Double check requirements
+- Failed to build `coqhammer`
+  - `make clean` in `ASTactic/coqhammer` and remake `coqhammer`
+- `make` in `coq_projects` fails
+  - `make clean` and remake the entire folder
+  - If that doesn't work, double check requirements and reset the directory to its fresh state
+- `pip` failed to install `lmdb==0.94`
+  - Try installing `lmdb==1.0`
+
+- `EOF` error while loading `.pt` objects
+  - Rebuild that project/file specifically
+
+
+TODO: Add more?
 
 
 ## 5. Resources
 
 <!-- Add resources on pre-built data and  -->
+
+Data can be obtained from the original CoqGym repo [here](https://github.com/princeton-vl/CoqGym#14-downloading-the-pre-extracted-proofs-recommended)
 
 ## 6. Reproducing Our Work
 
