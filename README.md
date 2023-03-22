@@ -44,6 +44,8 @@ These implementations are split between many branches to provide easier manageme
 - [`rl-mods`](https://github.com/danjenson/CoqGym-GNN/tree/rl-mods): Modified decoder with more expressive attention mechanism
 - [`int-emb`](https://github.com/danjenson/CoqGym-GNN/tree/int-emb): Contains implementation of `IntegerFeatureEncoder` in the encoder and the modifications from `rl-mods`.
 
+All of the above branches (except for `master`) have implementations of the GNN.
+
 ### 2.1 Pipeline Modifications
 
 In order to learn using GNNs efficiently, `x` and `edge_index` information need to be extracted from the `lark.tree.Tree` representations of ASTs. This computation is very costly, so it is delegated to the proof extraction stage. Here are the pipeline modifications that facilitate this change:
@@ -149,10 +151,10 @@ CoqGym has many dependencies and is nontrivial to set up correctly. The followin
 ### 3.2 Building Coq, SerAPI, CoqHammer, and the Coq Projects
 
 1. Create an OPAM switch for OCaml 4.07.1+flambda: `opam switch create 4.07.1+flambda && eval $(opam env)`
-1. Clone the repository: `git clone https://github.com/danjenson/CoqGym-GNN.git`
-1. Install Coq, SerAPI and CoqHammer: `cd CoqGym && source install.sh`
-1. Build the Coq projects (can take a while): `cd coq_projects && make && cd ..`
-1. Setup the python environment (see requirements.txt for version details):
+2. Clone the repository: `git clone https://github.com/danjenson/CoqGym-GNN.git`
+3. Install Coq, SerAPI and CoqHammer: `cd CoqGym && source install.sh`
+4. Build the Coq projects (can take a while): `cd coq_projects && make && cd ..`
+5. Setup the python environment (see requirements.txt for version details):
   - `curl https://pyenv.run | bash`
   -  `pyenv install 3.7.1 && pyenv local 3.7.1`
   - `pip install numpy ipython lark-parser==0.6.5 lmdb==0.94 pandas==0.24.2 pexpect==4.6.0 sexpdata==0.0.3 progressbar2`
@@ -167,7 +169,7 @@ CoqGym has many dependencies and is nontrivial to set up correctly. The followin
 
 2. Unzip the data and set the paths: `python unzip_data.py`
 
-*Caveat*: The second step sets the absolute paths in the data. You have to re-do it whenever the absolote path of the `data/` directory changes (e.g. after moving the entire repo to another directory).
+*Caveat*: The second step sets the absolute paths in the data. You have to re-do it whenever the absolute path of the `data/` directory changes (e.g. after moving the entire repo to another directory).
 
 ### 3.4 Check whether everything is setup correctly
 
@@ -185,12 +187,12 @@ Our encoder-decoder models are trained on individual proof steps rather than ent
 To extract proof steps from the CoqGym dataset, run `python extract_proof_steps.py` from the ASTactic directory. Note, this can take a while (8-12 hours). To help, we provide an alternate multiprocessing script to parallelize extraction across proof libraries (coq projects) `python multiprocess_extract.py`.
 
 The extracted proof steps are in proof_steps/. You can double-check the number of proof steps to make sure everything works as expected:
-Directory |  # files
------------- | -------------
-proof_steps/train | 121,644
-proof_steps/valid | 68,180
+| Directory         | # files |
+| ----------------- | ------- |
+| proof_steps/train | 121,644 |
+| proof_steps/valid | 68,180  |
 
-We also provide pre-extracted download tarballs for `train` and `valid` proof steps [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA).
+We also provide pre-extracted download tarballs for `train` and `valid` proof steps [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA?usp=share_link).
 
 ### 4.2 Training the encoder-decoder models
 
@@ -201,9 +203,9 @@ Model checkpoints will be saved to runs/astactic/checkpoints/. See options.py fo
 
 CoqGym's pre-trained astatic model can be downloaded [here](https://drive.google.com/drive/folders/1AzLaEpoGS3BPMUz9Bl63MHAFRqlF4CtH?usp=sharing).
 
-Our pre-trained GNN models can be downloaded [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA)
+Our pre-trained GNN models can be downloaded [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA?usp=share_link)
 
-### 4.3 Testing the rl agent
+### 4.3 Testing the RL agent
 
 To test a trained model on unseen proof libraries, run the following command from the ASTactic directory:
 `python evaluate ours <model_id> --path runs/<model_id>/checkpoints/model_<epoch#>.pth --filter <proof_library_name>`
@@ -236,11 +238,10 @@ To test a trained model on unseen proof libraries, run the following command fro
   - Rebuild that project/file specifically
 
 
-TODO: Add more?
-
-
 ## 6. Resources
 
 <!-- Add resources on pre-built data and  -->
 
 Data can be obtained from the original CoqGym repo [here](https://github.com/princeton-vl/CoqGym#14-downloading-the-pre-extracted-proofs-recommended)
+
+Our pre-trained models and pre-extracted proof steps for training can be obtained [here](https://drive.google.com/drive/folders/16xgR02z174s1CC1askWoZrpNUhS_yzpA?usp=share_link)
