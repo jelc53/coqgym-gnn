@@ -16,7 +16,7 @@ sys.path.append(os.path.abspath("."))
 from time import time
 
 def to_pyg_data(term):
-    return Data(x=torch.tensor(term["x"]), edge_index=torch.tensor(term["edge_index"]))
+    return Data(x=term["x"], edge_index=term["edge_index"])
 
 
 class Prover(nn.Module):
