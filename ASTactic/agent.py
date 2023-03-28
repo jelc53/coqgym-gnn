@@ -240,6 +240,8 @@ class Agent:
                 )
                 if proof_name is not None:
                     break
+                del proof_env
+                gc.collect()
         return results
 
     def prove_one_tactic(self, proof_env, tac):
