@@ -217,32 +217,54 @@ class Agent:
             hammer_timeout=hammer_timeout,
         ) as file_env:
             results = []
+            errors = []
             for proof_env in file_env:  # start a proof
-                if proof_name is not None and proof_env.proof["name"] != proof_name:
-                    continue
-                print("proof: ", proof_env.proof["name"])
-                # print('cuda memory allocated before proof: ', torch.cuda.memory_allocated(self.opts.device), file=sys.stderr)
-                success, proof_pred, time, num_tactics = self.prove(proof_env)
-                results.append(
-                    {
+                try:
+                    if proof_name is not None and proof_env.proof["name"] != proof_name:
+                        continue
+                    print("proof: ", proof_env.proof["name"])
+                    # print('cuda memory allocated before proof: ', torch.cuda.memory_allocated(self.opts.device), file=sys.stderr)
+                    success, proof_pred, time, num_tactics = self.prove(proof_env)
+                    results.append(
+                        {
+                            "filename": filename,
+                            "proof_name": proof_env.proof["name"],
+                            "success": success,
+                            "proof_gt": [
+                                step["command"][0]
+                                for step in proof_env.proof["steps"]
+                                if step["command"][1] != "VernacEndProof"
+                            ],
+                            "proof_pred": proof_pred,
+                            "time": time,
+                            "num_tactics": num_tactics,
+                        }
+                    )
+                    if proof_name is not None:
+                        break
+                    del proof_env
+                    gc.collect()
+                except Exception as e:
+                    results.append({
                         "filename": filename,
                         "proof_name": proof_env.proof["name"],
-                        "success": success,
+                        "success": False,
                         "proof_gt": [
                             step["command"][0]
-                            for step in proof_env.proof["steps"]
-                            if step["command"][1] != "VernacEndProof"
-                        ],
-                        "proof_pred": proof_pred,
-                        "time": time,
-                        "num_tactics": num_tactics,
-                    }
-                )
-                if proof_name is not None:
-                    break
-                del proof_env
-                gc.collect()
-        return results
+                                for step in proof_env.proof["steps"]
+                                if step["command"][1] != "VernacEndProof"
+                            ],
+                        "proof_pred": [],
+                        "time": self.opts.timeout,
+                        "num_tactics": 0,
+                    })
+                    # Save log of error
+                    errors.append({
+                        "filename": filename,
+                        "proof_name": proof_env.proof["name"],
+                        "error": str(e),
+                    })
+        return results, errors
 
     def prove_one_tactic(self, proof_env, tac):
         obs = proof_env.init()

@@ -124,40 +124,47 @@ if __name__ == "__main__":
 
     print(files)
     results = []
+    errors = []
     bar = ProgressBar(max_value=len(files))
     for i, f in enumerate(files):
         print("file: ", f)
         # print('cuda memory allocated before file: ', torch.cuda.memory_allocated(opts.device), file=sys.stderr)
-        results.extend(agent.evaluate(f, opts.proof))
+        r, e = agent.evaluate(f, opts.proof)
+        results.extend(r)
+        errors.extend(e)
         bar.update(i)
 
     oup_dir = os.path.join(opts.output_dir, opts.eval_id)
+    err_dir = os.path.join(oup_dir, "errors")
     if not os.path.exists(oup_dir):
         os.makedirs(oup_dir)
+    if not os.path.exists(err_dir):
+        os.mkdir(err_dir)
     if opts.filter is None and opts.file is None:
         oup_file = os.path.join(oup_dir, "results.json")
-    elif opts.file is None:
-        oup_file = os.path.join(oup_dir, "%s.json" % opts.filter)
-    elif opts.proof is None:
-        oup_file = os.path.join(
-            oup_dir,
-            "%s.json"
-            % os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
-                os.path.sep, "-"
-            )[:-5],
-        )
-    else:
-        oup_file = os.path.join(
-            oup_dir,
-            "%s-%s.json"
-            % (
-                os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
+        err_file = os.path.join(err_dir, "errors.json")
+    else: # Same file names
+        if opts.file is None:
+            file_name = "%s.json" % opts.filter
+        elif opts.proof is None:
+            file_name = "%s.json" \
+                % os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
                     os.path.sep, "-"
-                )[:-5],
-                opts.proof,
-            ),
-        )
+                )[:-5]
+        else:
+            file_name = "%s-%s.json" \
+                % (
+                    os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
+                        os.path.sep, "-"
+                    )[:-5],
+                    opts.proof,
+                )
+        oup_file = os.path.join(oup_dir, file_name)
+        err_file = os.path.join(err_dir, file_name)
     opts = vars(opts)
     del opts["device"]
     json.dump({"options": opts, "results": results}, open(oup_file, "wt"))
     log("\nResults saved to " + oup_file)
+    if errors:
+        json.dump(errors, open(err_file, "wt"))
+        log("Errors saved to " + err_file)
