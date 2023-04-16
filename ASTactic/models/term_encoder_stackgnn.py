@@ -1,6 +1,7 @@
 from typing import Optional, Tuple, Union
 
 import torch
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.nn as pyg_nn
@@ -18,7 +19,7 @@ from torch_sparse import SparseTensor, set_diag
 from .non_terminals import nonterminals
 
 
-class TermEncoder(torch.nn.Module):  # StackGNN
+class TermEncoder(torch.nn.Module):  # DiffPool
     def __init__(self, opts):
         super(TermEncoder, self).__init__()
         self.opts = opts
@@ -26,6 +27,59 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         self.input_dim = opts.nonterminals_feature_dim
         self.hidden_dim = opts.term_embedding_dim
         self.output_dim = opts.term_embedding_dim
+
+        num_nodes = math.ceil(0.25 * self.output_dim)
+        self.gnn1_pool = StackGNN(opts, num_nodes)
+        self.gnn1_embed = StackGNN(opts)
+
+        num_nodes = math.ceil(0.25 * num_nodes)
+        self.gnn2_pool = StackGNN(opts, num_nodes)
+        self.gnn2_embed = StackGNN(opts)
+
+        self.gnn3_embed = StackGNN(opts)
+
+        self.post_pool1 = nn.Linear(self.output_dim, self.output_dim)
+        self.post_pool2 = nn.Linear(self.output_dim, self.output_dim)
+
+    def forward(self, proof_step):
+        proof_step = self.feature_encoder(proof_step)
+        x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
+
+        # preprocess x
+        batch = batch.to(self.opts.device)
+        edge_index = edge_index.to(self.opts.device)
+        x = x.to(self.opts.device)
+
+        s = self.gnn1_pool(x, edge_index, mask=None)
+        x = self.gnn1_embed(x, edge_index, mask=None)
+
+        x, adj, l1, e1 = pyg_nn.dense_diff_pool(x, edge_index, s, mask=None)
+
+        s = self.gnn2_pool(x, edge_index)
+        x = self.gnn2_embed(x, edge_index)
+
+        x, adj, l2, e2 = pyg_nn.dense_diff_pool(x, adj, s)
+
+        x = self.gnn3_embed(x, edge_index)
+
+        x = x.mean(dim=1)
+        x = F.relu(self.post_pool1(x))
+        x = self.post_pool2(x)
+
+        return x
+
+    def loss(self, pred, label):
+        return F.nll_loss(pred, label)
+
+
+class StackGNN(torch.nn.Module):  # StackGNN (TermEncoder)
+    def __init__(self, opts, num_nodes=None):
+        super(StackGNN, self).__init__()
+        self.opts = opts
+
+        self.input_dim = opts.nonterminals_feature_dim
+        self.hidden_dim = opts.term_embedding_dim
+        self.output_dim = opts.term_embedding_dim if num_nodes is None else num_nodes
 
         self.feature_encoder = IntegerFeatureEncoder(self.input_dim, len(nonterminals))
 
@@ -53,8 +107,8 @@ class TermEncoder(torch.nn.Module):  # StackGNN
         self.num_layers = opts.num_layers
 
         # pooling
-        self.pool = pyg_nn.global_max_pool  # self.pool = pyg_nn.dense_diff_pool
-        self.post_pool = nn.Linear(self.output_dim, self.output_dim)
+        # self.pool = pyg_nn.global_max_pool  # self.pool = pyg_nn.dense_diff_pool
+        # self.post_pool = nn.Linear(self.output_dim, self.output_dim)
 
     def build_conv_model(self, model_type):
         if model_type == "GraphSage":
@@ -87,10 +141,11 @@ class TermEncoder(torch.nn.Module):  # StackGNN
 
         x = self.post_mp(x)
 
-        # differential pooling
-        x = self.pool(x, batch)
+        # pooling
+        # x = self.pool(x, batch)
+        # x = self.post_pool(x)
 
-        return self.post_pool(x)
+        return x
 
     def loss(self, pred, label):
         return F.nll_loss(pred, label)
