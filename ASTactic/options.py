@@ -43,7 +43,7 @@ def parse_args():
     # term encoder
     parser.add_argument("--model_type", type=str, default="GraphSage")
     parser.add_argument("--dropout", type=int, default=0.5)
-    parser.add_argument("--num_layers", type=int, default=2)
+    parser.add_argument("--num_layers", type=int, default=2)  # HOList: 12-hop GNN encoder
     parser.add_argument("--heads", type=int, default=1)
     parser.add_argument("--term_embedding_dim", type=int, default=256)
     parser.add_argument("--nonterminals_feature_dim", type=int, default=32)
