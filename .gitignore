@@ -149,4 +149,18 @@ coqhammer/
 proof_steps*/
 sexp_cache*
 *.json
+*.simg
 runs/
+proof_steps*/
+
+# LaTeX files
+*-blx.bib
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.run.xml
+*.synctex.gz
+*.synctex(busy)
+*.xdv
+*.pdf
