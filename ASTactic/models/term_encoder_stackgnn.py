@@ -47,20 +47,18 @@ class TermEncoder(torch.nn.Module):  # DiffPool
 
         # preprocess x
         batch = batch.to(self.opts.device)
-        edge_index = edge_index.to(self.opts.device)
+        adj = edge_index.to(self.opts.device)
         x = x.to(self.opts.device)
 
-        s = self.gnn1_pool(x, edge_index, mask=None)
-        x = self.gnn1_embed(x, edge_index, mask=None)
+        s = self.gnn1_pool(x, adj, mask=None)
+        x = self.gnn1_embed(x, adj, mask=None)
+        x, adj, l1, e1 = pyg_nn.dense_diff_pool(x, adj, s)
 
-        x, adj, l1, e1 = pyg_nn.dense_diff_pool(x, edge_index, s, mask=None)
-
-        s = self.gnn2_pool(x, edge_index)
-        x = self.gnn2_embed(x, edge_index)
-
+        s = self.gnn2_pool(x, adj, mask=None)
+        x = self.gnn2_embed(x, adj, mask=None)
         x, adj, l2, e2 = pyg_nn.dense_diff_pool(x, adj, s)
 
-        x = self.gnn3_embed(x, edge_index)
+        x = self.gnn3_embed(x, adj)
 
         x = x.mean(dim=1)
         x = F.relu(self.post_pool1(x))
