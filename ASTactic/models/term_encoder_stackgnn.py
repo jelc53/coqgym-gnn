@@ -27,12 +27,14 @@ class TermEncoder(torch.nn.Module):  # DiffPool
         self.input_dim = opts.nonterminals_feature_dim
         self.hidden_dim = opts.term_embedding_dim
         self.output_dim = opts.term_embedding_dim
+        
+        self.feature_encoder = IntegerFeatureEncoder(self.input_dim, len(nonterminals))
 
-        num_nodes = math.ceil(0.25 * self.output_dim)
+        num_nodes = 16  #math.ceil(0.25 * self.output_dim)
         self.gnn1_pool = StackGNN(opts, num_nodes)
         self.gnn1_embed = StackGNN(opts)
 
-        num_nodes = math.ceil(0.25 * num_nodes)
+        num_nodes = 8  #math.ceil(0.25 * num_nodes)
         self.gnn2_pool = StackGNN(opts, num_nodes)
         self.gnn2_embed = StackGNN(opts)
 
@@ -47,18 +49,22 @@ class TermEncoder(torch.nn.Module):  # DiffPool
 
         # preprocess x
         batch = batch.to(self.opts.device)
-        adj = edge_index.to(self.opts.device)
+        edge_index = edge_index.to(self.opts.device)
         x = x.to(self.opts.device)
 
-        s = self.gnn1_pool(x, adj, mask=None)
-        x = self.gnn1_embed(x, adj, mask=None)
+        s = self.gnn1_pool(x, edge_index)
+        x = self.gnn1_embed(x, edge_index)
+        adj = pyg_utils.to_dense_adj(edge_index, batch)
         x, adj, l1, e1 = pyg_nn.dense_diff_pool(x, adj, s)
 
-        s = self.gnn2_pool(x, adj, mask=None)
-        x = self.gnn2_embed(x, adj, mask=None)
+        edge_index = adj.nonzero().t().contiguous()
+        s = self.gnn2_pool(x, edge_index)
+        x = self.gnn2_embed(x, edge_index)
+        adj = pyg_utils.to_dense_adj(edge_index, batch)
         x, adj, l2, e2 = pyg_nn.dense_diff_pool(x, adj, s)
 
-        x = self.gnn3_embed(x, adj)
+        edge_index = adj.nonzero().t().contiguous()
+        x = self.gnn3_embed(x, edge_index)
 
         x = x.mean(dim=1)
         x = F.relu(self.post_pool1(x))
@@ -79,7 +85,7 @@ class StackGNN(torch.nn.Module):  # StackGNN (TermEncoder)
         self.hidden_dim = opts.term_embedding_dim
         self.output_dim = opts.term_embedding_dim if num_nodes is None else num_nodes
 
-        self.feature_encoder = IntegerFeatureEncoder(self.input_dim, len(nonterminals))
+        # self.feature_encoder = IntegerFeatureEncoder(self.input_dim, len(nonterminals))
 
         conv_model = self.build_conv_model(opts.model_type)
         self.convs = nn.ModuleList()
@@ -122,13 +128,13 @@ class StackGNN(torch.nn.Module):  # StackGNN (TermEncoder)
             return GAT
         raise ValueError("Unknown model type: {}".format(model_type))
 
-    def forward(self, proof_step):
+    def forward(self, x, edge_index):
         """"""
-        proof_step = self.feature_encoder(proof_step)
-        x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
+        # proof_step = self.feature_encoder(proof_step)
+        # x, edge_index, batch = proof_step.x, proof_step.edge_index, proof_step.batch
 
         # preprocess x
-        batch = batch.to(self.opts.device)
+        # batch = batch.to(self.opts.device)
         edge_index = edge_index.to(self.opts.device)
         x = x.to(self.opts.device)
 
