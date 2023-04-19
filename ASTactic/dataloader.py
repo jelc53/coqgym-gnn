@@ -109,11 +109,26 @@ def create_dataloader(split, opts):
 
 
 if __name__ == "__main__":
+    import json
+
     opts = parse_args()
-    loader = create_dataloader("train", opts)
+    loader = create_dataloader("train_valid", opts)
     bar = ProgressBar(max_value=len(loader))
+    num_nodes = defaultdict(int)
     for i, data_batch in enumerate(loader):
         if i == 0:
             print(data_batch)
             # pickle.dump(data_batch, open("data_batch.pickle", "wb"))
-        bar.update(i)
+        for proof_step in data_batch.to_data_list():
+            _, counts = torch.unique(proof_step.batch, return_counts=True)
+            for c in counts:
+                num_nodes[int(c.item())] += 1
+        bar.update(i+1)
+    avg = sum([k * v for k, v in num_nodes.items()]) / sum(num_nodes.values())
+    save_dict = {
+        'num_nodes': dict(num_nodes),
+        'avg': avg,
+    }
+
+    json.dump(save_dict, open("num_nodes_train_valid.json", "w"))
+    print(avg)
