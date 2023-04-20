@@ -114,21 +114,29 @@ if __name__ == "__main__":
     opts = parse_args()
     loader = create_dataloader("train_valid", opts)
     bar = ProgressBar(max_value=len(loader))
-    num_nodes = defaultdict(int)
+    num_nodes = defaultdict(lambda: defaultdict(int))
+    heights = defaultdict(lambda: defaultdict(int))
     for i, data_batch in enumerate(loader):
         if i == 0:
             print(data_batch)
             # pickle.dump(data_batch, open("data_batch.pickle", "wb"))
         for proof_step in data_batch.to_data_list():
+            project_name = proof_step.file.split(os.path.sep)[2]
             _, counts = torch.unique(proof_step.batch, return_counts=True)
             for c in counts:
-                num_nodes[int(c.item())] += 1
+                num_nodes[project_name][int(c.item())] += 1
+            for env in proof_step.env:
+                heights[project_name][env['ast'].height] += 1
+            for lc in proof_step.local_context:
+                heights[project_name][lc['ast'].height] += 1
+            heights[project_name][proof_step.goal['ast'].height] += 1
+
         bar.update(i+1)
-    avg = sum([k * v for k, v in num_nodes.items()]) / sum(num_nodes.values())
+    print(f'\nNum projects: {len(num_nodes)}')
+    print(f'Max nodes: {max([max(v.keys()) for v in num_nodes.values()])}')
     save_dict = {
         'num_nodes': dict(num_nodes),
-        'avg': avg,
+        'heights': dict(heights),
     }
 
     json.dump(save_dict, open("num_nodes_train_valid.json", "w"))
-    print(avg)
