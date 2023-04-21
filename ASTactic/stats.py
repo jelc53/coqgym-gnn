@@ -15,7 +15,7 @@ def main(n_cpu=mp.cpu_count()):
         splits = json.load(f)
     projects = [project for split in splits.values() for project in split]
     with mp.Pool(n_cpu) as pool:
-        for project in tqdm(projects[:3], desc='projects', position=0):
+        for project in tqdm(projects, desc='projects', position=0):
             d = {}
             dir = Path("../data") / project
             for j in tqdm(list(dir.glob("**/*.json")), desc=project, position=1, leave=False):
