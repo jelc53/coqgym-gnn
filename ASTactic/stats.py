@@ -15,15 +15,17 @@ def main(n_cpu=mp.cpu_count()):
         splits = json.load(f)
     projects = [project for split in splits.values() for project in split]
     with mp.Pool(n_cpu) as pool:
-        for project in tqdm(projects, desc='projects', position=0):
+        for project in tqdm(projects[:10], desc='projects', position=0):
             d = {}
             dir = Path("../data") / project
-            for j in tqdm(list(dir.glob("**/*.json")), desc=project, position=1, leave=False):
-                with open(j) as f:
-                    proofs = json.load(f)["proofs"]
-                    d[j.name] = dict(pool.map(stats, proofs))
-            with open(dir.with_suffix('.pkl'), 'wb') as f:
-                pickle.dump(d, f)
+            pkl = dir.with_suffix('.pkl')
+            if not pkl.exists():
+                for j in tqdm(list(dir.glob("**/*.json")), desc=project, position=1, leave=False):
+                    with open(j) as f:
+                        proofs = json.load(f)["proofs"]
+                        d[j.name] = dict(pool.map(stats, proofs))
+                with open(pkl, 'wb') as f:
+                    pickle.dump(d, f)
 
 def stats(proof):
     env = {}
