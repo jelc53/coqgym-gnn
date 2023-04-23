@@ -152,3 +152,6 @@ sexp_cache*
 *.simg
 runs/
 proof_steps*/
+
+stats/
+analysis.csv
