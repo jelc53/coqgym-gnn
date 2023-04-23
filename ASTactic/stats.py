@@ -1,4 +1,3 @@
-#!/usr/bin/env python3.11
 from pathlib import Path
 from tqdm import tqdm
 import argparse
@@ -11,11 +10,11 @@ import pandas as pd
 import pickle
 import sys
 
+from extract_proof_steps import parse_goal, filter_env
 
 def collect(n_cpu=mp.cpu_count()):
     # NOTE: janky, but only required if we are using ASTactic code,
     # fails anywhere the project and data aren't completely set up
-    from extract_proof_steps import parse_goal, filter_env
 
     with open("../projs_split.json") as f:
         splits = json.load(f)
@@ -88,8 +87,8 @@ def summarize(steps):
         heights.append(step["goal"]["height"])
         ns.append(step["goal"]["n"])
     qs = [0.01, 0.25, 0.5, 0.75, 0.99]
-    h_qs = np.quantile(heights, qs, method="closest_observation")
-    n_qs = np.quantile(ns, qs, method="closest_observation")
+    h_qs = np.quantile(heights, qs, interpolation="highest")
+    n_qs = np.quantile(ns, qs, interpolation="highest")
     h_d = {f"height_p{int(q*100)}": v for q, v in zip(qs, h_qs)}
     n_d = {f"n_p{int(q*100)}": v for q, v in zip(qs, n_qs)}
     return {"n": len(steps), **h_d, **n_d}
@@ -115,9 +114,8 @@ def parse_args(argv):
 
 if __name__ == "__main__":
     args = parse_args(sys.argv)
-    match args.command:
-        case "collect":
-            collect(args.n_cpu)
-        case "analyze":
-            df = analyze(args.dir, args.n_cpu)
-            df.to_csv("analysis.csv", index=False)
+    if args.command == "collect":
+        collect(args.n_cpu)
+    elif args.command == "analyze":
+        df = analyze(args.dir, args.n_cpu)
+        df.to_csv("analysis.csv", index=False)
