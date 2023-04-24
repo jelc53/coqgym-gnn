@@ -42,7 +42,6 @@ class ProofStepsData(Dataset):
             self.proof_steps.append(step)
 
         random.shuffle(self.proof_steps)
-        print(self.proof_steps)
         print("%d proof steps in %s" % (len(self), split))
 
     def __len__(self):
