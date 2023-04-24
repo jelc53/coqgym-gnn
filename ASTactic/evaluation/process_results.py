@@ -31,7 +31,7 @@ def main():
             all_parsed_results.append(parse_result(r))
 
     df = pd.DataFrame(all_parsed_results)
-    df.to_csv(output_file)
+    df.to_csv(output_file, index=False)
 
 def parse_result(result):
     project_name = result["filename"].split(os.path.sep)[2]
