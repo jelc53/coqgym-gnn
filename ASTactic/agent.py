@@ -220,7 +220,8 @@ class Agent:
             errors = []
             for proof_env in file_env:  # start a proof
                 try:
-                    if proof_name is not None and proof_env.proof["name"] != proof_name:
+                    if (proof_name is not None and proof_env.proof["name"] != proof_name)\
+                        or proof_env.proof["name"] in self.opts.skip_proofs:
                         continue
                     print("proof: ", proof_env.proof["name"])
                     # print('cuda memory allocated before proof: ', torch.cuda.memory_allocated(self.opts.device), file=sys.stderr)

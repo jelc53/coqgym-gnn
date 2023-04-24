@@ -116,6 +116,7 @@ def parse_args():
         log("--lr_reduce_steps is applicable only when no_validation == True", "ERROR")
 
     # Skip option field validation
+    # NOTE: skip libs does not work on training due to data naming convention
     opts.skip_projects = []
     opts.skip_libs = []
     opts.skip_proofs = []
@@ -127,10 +128,6 @@ def parse_args():
             opts.skip_projects = skip_df[skip_df["project"].notnull()]["project"].to_list()
             opts.skip_libs = skip_df[skip_df["lib"].notnull()]["lib"].to_list()
             opts.skip_proofs = skip_df[skip_df["proof"].notnull()]["proof"].to_list()
-
-    print(opts.skip_projects)
-    print(opts.skip_libs)
-    print(opts.skip_proofs)
     log(opts)
     return opts
 
