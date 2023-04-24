@@ -87,8 +87,8 @@ def summarize(steps):
         heights.append(step["goal"]["height"])
         ns.append(step["goal"]["n"])
     qs = [0.01, 0.25, 0.5, 0.75, 0.99]
-    h_qs = np.quantile(heights, qs, interpolation="highest")
-    n_qs = np.quantile(ns, qs, interpolation="highest")
+    h_qs = np.quantile(heights, qs, interpolation="higher")
+    n_qs = np.quantile(ns, qs, interpolation="higher")
     h_d = {f"height_p{int(q*100)}": v for q, v in zip(qs, h_qs)}
     n_d = {f"n_p{int(q*100)}": v for q, v in zip(qs, n_qs)}
     return {"n": len(steps), **h_d, **n_d}
