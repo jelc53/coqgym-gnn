@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from pathlib import Path
 from tqdm import tqdm
 import argparse
@@ -12,13 +13,12 @@ import sys
 
 from extract_proof_steps import parse_goal, filter_env
 
-def collect(n_cpu=mp.cpu_count()):
-    # NOTE: janky, but only required if we are using ASTactic code,
-    # fails anywhere the project and data aren't completely set up
 
-    with open("../projs_split.json") as f:
-        splits = json.load(f)
-    projects = [project for split in splits.values() for project in split]
+def collect(projects, n_cpu):
+    if not projects:
+        with open("../projs_split.json") as f:
+            splits = json.load(f)
+        projects = [project for split in splits.values() for project in split]
     with mp.Pool(n_cpu) as pool:
         for project in tqdm(projects, desc="projects", position=0):
             d = {}
@@ -61,7 +61,7 @@ def stats(proof):
 
 def analyze(dir, n_cpu=mp.cpu_count()):
     with mp.Pool(n_cpu) as pool:
-        results = pool.map(analyze_project, Path(dir).glob('*.pkl'))
+        results = pool.map(analyze_project, Path(dir).glob("*.pkl"))
     return pd.DataFrame(it.chain(*results))
 
 
@@ -103,6 +103,12 @@ def parse_args(argv):
     collect = cmd.add_parser(
         "collect", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+    collect.add_argument(
+        "-p",
+        "--projects",
+        nargs="*",
+        help="only collect stats for given projects",
+    )
     analyze = cmd.add_parser(
         "analyze", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -115,7 +121,7 @@ def parse_args(argv):
 if __name__ == "__main__":
     args = parse_args(sys.argv)
     if args.command == "collect":
-        collect(args.n_cpu)
+        collect(args.projects, args.n_cpu)
     elif args.command == "analyze":
         df = analyze(args.dir, args.n_cpu)
         df.to_csv("analysis.csv", index=False)
