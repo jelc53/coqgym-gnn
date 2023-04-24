@@ -13,6 +13,7 @@ sys.setrecursionlimit(100000)
 import pdb
 from collections import defaultdict
 from glob import glob
+import re
 
 import numpy as np
 
@@ -23,12 +24,25 @@ class ProofStepsData(Dataset):
         self.opts = opts
 
         if split in ["train", "valid"]:
-            self.proof_steps = glob(os.path.join(opts.datapath, split, "*.pt"))
+            proof_steps = glob(os.path.join(opts.datapath, split, "*.pt"))
         elif split == "train_valid":
-            self.proof_steps = glob(
+            proof_steps = glob(
                 os.path.join(opts.datapath, "train/*.pt")
             ) + glob(os.path.join(opts.datapath, "valid/*.pt"))
+        else:
+            raise ValueError("Invalid split")
+        # Assuming proof steps are named as "project-proof-####.pt"
+        # Filter out skipped proofs
+        self.proof_steps = []
+        for step in proof_steps:
+            matches = re.match(r"([a-zA-Z0-9_-]+)-([a-zA-Z0-9_]+)-[0-9-]{8,}.pt", step.split(os.path.sep)[-1])
+            if not matches: continue
+            # Check for filters
+            if matches[1] in opts.skip_projects or matches[2] in opts.skip_proofs: continue
+            self.proof_steps.append(step)
+
         random.shuffle(self.proof_steps)
+        print(self.proof_steps)
         print("%d proof steps in %s" % (len(self), split))
 
     def __len__(self):

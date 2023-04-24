@@ -6,8 +6,9 @@ import numpy as np
 import random
 import json
 import sys
+import pandas as pd
 
-sys.path.append(os.path.sep.join(__file__.split(os.path.sep)[:-2]))
+sys.path.append(os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2]))
 from utils import log
 import pdb
 
@@ -83,6 +84,9 @@ def parse_args():
                                                              (only applicable when no_validation == True)",
     )
 
+    # Skip proofs
+    parser.add_argument("--skip", type=str, default="")
+
     parser.add_argument("--device", type=str, default="")
 
     opts = parser.parse_args()
@@ -111,6 +115,22 @@ def parse_args():
     if (not opts.no_validation) and (opts.lr_reduce_steps is not None):
         log("--lr_reduce_steps is applicable only when no_validation == True", "ERROR")
 
+    # Skip option field validation
+    opts.skip_projects = []
+    opts.skip_libs = []
+    opts.skip_proofs = []
+    if opts.skip and os.path.exists(opts.skip):
+        skip_df = pd.read_csv(opts.skip)
+        if any(field not in skip_df for field in ["project", "lib", "proof"]):
+            log("Invalid skip csv, skipping nothing. Requires columns: project, lib, proof", "WARNING")
+        else:
+            opts.skip_projects = skip_df[skip_df["project"].notnull()]["project"].to_list()
+            opts.skip_libs = skip_df[skip_df["lib"].notnull()]["lib"].to_list()
+            opts.skip_proofs = skip_df[skip_df["proof"].notnull()]["proof"].to_list()
+
+    print(opts.skip_projects)
+    print(opts.skip_libs)
+    print(opts.skip_proofs)
     log(opts)
     return opts
 
