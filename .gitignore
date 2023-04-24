@@ -153,5 +153,4 @@ sexp_cache*
 runs/
 proof_steps*/
 
-stats/
-analysis.csv
+*.csv
