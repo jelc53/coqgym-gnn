@@ -124,4 +124,4 @@ if __name__ == "__main__":
         collect(args.projects, args.n_cpu)
     elif args.command == "analyze":
         df = analyze(args.dir, args.n_cpu)
-        df.to_csv("analysis.csv", index=False)
+        df.to_csv("stats.csv", index=False)
