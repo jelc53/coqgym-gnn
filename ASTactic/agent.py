@@ -243,8 +243,6 @@ class Agent:
                     )
                     if proof_name is not None:
                         break
-                    del proof_env
-                    gc.collect()
                 except Exception as e:
                     results.append({
                         "filename": filename,
@@ -265,6 +263,8 @@ class Agent:
                         "proof_name": proof_env.proof["name"],
                         "error": str(e),
                     })
+                del proof_env
+                gc.collect()
         return results, errors
 
     def prove_one_tactic(self, proof_env, tac):
