@@ -86,12 +86,12 @@ def summarize(steps):
             ns.append(d["n"])
         heights.append(step["goal"]["height"])
         ns.append(step["goal"]["n"])
-    qs = [0.01, 0.25, 0.5, 0.75, 0.99]
+    qs = [0.01, 0.25, 0.5, 0.75, 0.99, 1.0]
     h_qs = np.quantile(heights, qs, interpolation="higher")
     n_qs = np.quantile(ns, qs, interpolation="higher")
     h_d = {f"height_p{int(q*100)}": v for q, v in zip(qs, h_qs)}
-    n_d = {f"n_p{int(q*100)}": v for q, v in zip(qs, n_qs)}
-    return {"n": len(steps), **h_d, **n_d}
+    n_d = {f"nodes_p{int(q*100)}": v for q, v in zip(qs, n_qs)}
+    return {"n_steps": len(steps), **h_d, **n_d}
 
 
 def parse_args(argv):
