@@ -8,20 +8,36 @@ import sys
 
 def rage(name: str, model_path: str, model_type: str, extra: str = '', n_cpu: int = mp.cpu_count()):
     projects = [
-        'zorns-lemma',
-        'coqoban',
-        'coq-procrastination',
-        'fermat4',
-        'zfc',
-        'hoare-tut',
-        'coqrel',
-        'UnifySL',
-        'jordan-curve-theorem',
-        'buchberger',
+        #"weak-up-to",
+        #"buchberger",
+        #"jordan-curve-theorem",
+        #"dblib",
+        #"disel",
+        #"zchinese",
+        #"zfc",
+        #"dep-map",
+        #"chinese",
+        #"UnifySL",
+        #"hoare-tut",
+        #"huffman",
+        #"PolTac",
+        #"angles",
+        #"coq-procrastination",
+        #"coq-library-undecidability",
+        #"tree-automata",
+        #"coquelicot",
+        "fermat4",
+        #"demos",
+        #"coqoban",
+        #"goedel",
+        #"verdi-raft",
+        #"verdi",
+        #"zorns-lemma",
+        #"coqrel",
+        #"fundamental-arithmetics",
     ]
     cmds = [
-        f"python evaluate.py ours {name} --path {model_path} --model_type {model_type} {extra} --filter {project}" for project in projects]
-        #f"python evaluate.py ours {name} --path {model_path} {extra} --filter {project}" for project in projects]
+        f"python evaluate.py ours {name} --path {model_path} {extra} --filter {project}" for project in projects]
     with mp.Pool(n_cpu) as p:
         p.map(x_output, cmds)
 
@@ -61,9 +77,6 @@ def parse_args(argv):
     )
     parser.add_argument("name")
     parser.add_argument("model_path")
-    parser.add_argument("model_type")
-    parser.add_argument("-e", "--extra", help="extra args",
-                        default="--num_heads 2")
     parser.add_argument("-n_cpu", default=mp.cpu_count(), type=int)
     return parser.parse_args(argv[1:])
 
@@ -71,4 +84,4 @@ def parse_args(argv):
 if __name__ == "__main__":
     args = parse_args(sys.argv)
     print(args)
-    rage(args.name, args.model_path, args.model_type, args.extra, args.n_cpu)
+    rage(args.name, args.model_path, args.n_cpu)
