@@ -541,6 +541,7 @@ class TacticDecoder(nn.Module):
                     else:
                         candidates = local_context["idents"]
                     if candidates == []:
+                        # Choose random quantified identifier from goal
                         candidates = ["H"] + goal["quantified_idents"]
                         log_cond_prob = -math.log(len(candidates))
                         for cand in candidates:

@@ -47,7 +47,7 @@ def filter_env(env):
             {
                 "qualid": const["qualid"],
                 "ast": env_ast,
-                "x": create_x(env_ast),
+                "x": create_x(env_ast)[0],
                 "edge_index": create_edge_index(env_ast),
             }
         )
@@ -56,7 +56,15 @@ def filter_env(env):
 
 def parse_goal(g):
     goal_ast = term_parser.parse(g["sexp"])
-    goal = {"id": g["id"], "text": g["type"], "ast": goal_ast, "x": create_x(goal_ast), "edge_index": create_edge_index(goal_ast)}
+    x, idents = create_x(goal_ast)
+    goal = {
+        "id": g["id"],
+        "text": g["type"],
+        "ast": goal_ast,
+        "x": x,
+        "idents": idents,
+        "edge_index": create_edge_index(goal_ast)
+    }
     local_context = []
     for i, h in enumerate(g["hypotheses"]):
         for ident in h["idents"]:
@@ -66,7 +74,7 @@ def parse_goal(g):
                     "ident": ident,
                     "text": h["type"],
                     "ast": context_ast,
-                    "x": create_x(context_ast),
+                    "x": create_x(context_ast)[0],
                     "edge_index": create_edge_index(context_ast),
                 }
             )

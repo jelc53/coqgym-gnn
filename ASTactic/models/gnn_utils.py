@@ -36,9 +36,14 @@ def create_x(ast):
     """
     x = []
 
+    idents: list[tuple] = []
+
     def callbck(node):
+        i = len(x)
         x.append([nonterminals.index(node.data)])
+        if hasattr(node, "ident"):
+            idents.append((i, node.ident))
 
     traverse_postorder(ast, callbck)
 
-    return torch.tensor(x, dtype=torch.long)
+    return torch.tensor(x, dtype=torch.long), idents

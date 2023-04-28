@@ -28,11 +28,13 @@ sexp_cache = SexpCache("../sexp_cache", readonly=True)
 
 def parse_goal(g):
     goal_tree = term_parser.parse(sexp_cache[g["sexp"]])
+    x, idents = create_x(goal_tree)
     goal = {
         "id": g["id"],
         "text": g["type"],
         "ast": goal_tree,
-        "x": create_x(goal_tree),
+        "x": x,
+        "idents": idents,
         "edge_index": create_edge_index(goal_tree),
     }
     local_context = []
@@ -44,7 +46,7 @@ def parse_goal(g):
                     "ident": ident,
                     "text": h["type"],
                     "ast": context_tree,
-                    "x": create_x(context_tree),
+                    "x": create_x(context_tree)[0],
                     "edge_index": create_edge_index(context_tree),
                 }
             )
