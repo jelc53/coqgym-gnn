@@ -59,7 +59,7 @@ tree_builder = TreeBuilder(grammar)
 
 def tactic2actions(tac_str):
     tree = tree_builder.transform(grammar.parser.parse(tac_str))
-    assert tac_str.replace(" ", "") == tree.to_tokens().replace(" ", "")
+    assert tac_str.replace(" ", "") == tree.to_tokens().replace(" ", "") # type: ignore
     actions = []
 
     def gather_actions(node):
@@ -69,43 +69,20 @@ def tactic2actions(tac_str):
             assert isinstance(node, TerminalNode)
             actions.append(node.token)
 
-    tree.traverse_pre(gather_actions)
+    tree.traverse_pre(gather_actions) # type: ignore
     return actions
 
-
-projs_split = json.load(open("../projs_split.json"))
-proof_steps = {"train": [], "valid": [], "test": []}
-
-num_discarded = 0
-total_count = 0
-path_dict = {}
-
 def to_pyg_data(term):
-    return Data(x=torch.tensor(term["x"]), edge_index=torch.tensor(term["edge_index"]))
+    return Data(x=term["x"], edge_index=term["edge_index"])
 
-def process_proof(filename, proof_data):
+def process_proof(project: str, lib: str, proof_data: dict, output: str, split: str):
     if "entry_cmds" in proof_data:
         is_synthetic = True
     else:
         is_synthetic = False
-    global num_discarded, total_count, path_dict
 
-    if args.filter and args.filter != filename.split(os.path.sep)[2]:
-        return  # skip proof folders not included in filter flag
-    # if not md5(filename.encode()).hexdigest().startswith(args.filter):
-    #     return
-
-    proj = filename.split(os.path.sep)[2]
-    if proj in projs_split["projs_train"]:
-        split = "train"
-    elif proj in projs_split["projs_valid"]:
-        split = "valid"
-        if is_synthetic:
-            return
-    else:
-        split = "test"
-        if is_synthetic:
-            return
+    if split != "train" and is_synthetic:
+        return
 
     for i, step in enumerate(proof_data["steps"]):
         # consider only tactics
@@ -118,32 +95,21 @@ def process_proof(filename, proof_data):
             continue
         # local context & goal
         if step["goal_ids"]["fg"] == []:
-            num_discarded += 1
             continue
         # tactic
         tac_str = step["command"][0][:-1]
         try:
             actions = tactic2actions(tac_str)
         except (UnexpectedCharacters, ParseError) as ex:
-            num_discarded += 1
             continue
 
         path_name = os.path.join(
-            args.output, split, f"{proj}-{proof_data['name']}-{i:08d}"
+            output, split, f"{project}-{lib.split('.')[0]}-{proof_data['name']}-{i:08d}"
         )
-        count = path_dict.get(path_name, 0) + 1
-        path_dict[path_name] = count
 
-        if path_dict.get(path_name, 0) > 1:
-            path_name += f"-{path_dict[path_name]}"
-            if args.verbose:
-                print(f"Duplicate path: {path_name}")
         path = path_name + ".pt"
         if os.path.exists(path): # Original path already exists
-            total_count += 1
-            continue
-        total_count += 1
-        if args.dry:
+            print(f"Skipping {path} as it already exists")
             continue
 
         assert step["command"][1] == "VernacExtend"
@@ -153,7 +119,8 @@ def process_proof(filename, proof_data):
         goal_id = step["goal_ids"]["fg"][0]
         local_context, goal = parse_goal(proof_data["goals"][str(goal_id)])
         proof_step = {
-            "file": filename,
+            "project": project,
+            "file": lib,
             "proof_name": proof_data["name"],
             "n_step": i,
             "env": env,
@@ -192,35 +159,36 @@ def process_proof(filename, proof_data):
         for k, v in proof_step.items():
             B[k] = v
         torch.save(B, path)
-        # proof_steps[split].append(B)
         del B, env, proof_step, Gs
         gc.collect()
 
 
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser(
-        description="Extract the proof steps from CoqGym for trainig ASTactic via supervised learning"
-    )
-    arg_parser.add_argument(
-        "--data_root", type=str, default="../data", help="The folder for CoqGym"
-    )
-    arg_parser.add_argument(
-        "--output", type=str, default="./proof_steps/", help="The output file"
-    )
-    arg_parser.add_argument(
-        "-d", "--dry", action="store_true", help="Dry run, only print the number of proofs"
-    )
-    arg_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
-    arg_parser.add_argument("--filter", type=str, help="filter the proofs")
-    args = arg_parser.parse_args()
-    print(args)
+    # arg_parser = argparse.ArgumentParser(
+    #     description="Extract the proof steps from CoqGym for trainig ASTactic via supervised learning"
+    # )
+    # arg_parser.add_argument(
+    #     "--data_root", type=str, default="../data", help="The folder for CoqGym"
+    # )
+    # arg_parser.add_argument(
+    #     "--output", type=str, default="./proof_steps/", help="The output file"
+    # )
+    # arg_parser.add_argument(
+    #     "-d", "--dry", action="store_true", help="Dry run, only print the number of proofs"
+    # )
+    # arg_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
+    # arg_parser.add_argument("--filter", type=str, help="filter the proofs")
+    # args = arg_parser.parse_args()
+    # print(args)
 
-    filter_file = \
-        lambda f: f.split(os.path.sep)[2] in \
-            (projs_split['projs_valid'] # + projs_split['projs_test']
-            if not args.filter else [args.filter])
+    print("Calling extract proof steps is now deprecated in favor of multiprocessing over process_proof")
 
-    iter_proofs(
-        args.data_root, process_proof, include_synthetic=False, show_progress=True, filter_file=filter_file
-    )
-    print(f'{total_count} total, {num_discarded} discarded, {len(path_dict)} unique')
+    # filter_file = \
+    #     lambda f: f.split(os.path.sep)[2] in \
+    #         (projs_split['projs_valid'] # + projs_split['projs_test']
+    #         if not args.filter else [args.filter])
+
+    # iter_proofs(
+    #     args.data_root, process_proof, include_synthetic=False, show_progress=True, filter_file=filter_file
+    # )
+    # print(f'{total_count} total, {num_discarded} discarded, {len(path_dict)} unique')
