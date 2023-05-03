@@ -95,7 +95,13 @@ def parse_args(argv):
         prog=argv[0], formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("--n_cpu", default=mp.cpu_count(), type=int)
-    parser.add_argument("-s", "--split", type=str, default="train")
+    parser.add_argument(
+        "-s",
+        "--split",
+        type=str,
+        default="train",
+        choices=["train", "valid", "train_valid"],
+    )
     parser.add_argument(
         "-f",
         "--filter",
@@ -130,14 +136,14 @@ def parse_args(argv):
     return args
 
 
-def process_lib(project, lib, proofs, output, split):
+def process_lib(project, file_name, proofs, output, split):
     env = {"constants": [], "inductives": []}
     # Process proof data
     for proof_data in proofs:
         env = update_env(env, proof_data["env_delta"])
         del proof_data["env_delta"]
         proof_data["env"] = env
-        process_proof(project, lib, proof_data, output, split)
+        process_proof(project, file_name, proof_data, output, split)
 
 
 if __name__ == "__main__":
@@ -147,20 +153,21 @@ if __name__ == "__main__":
     from multiprocess_utils import MPSelections, mp_iter_libs
     from extract_proof_steps import process_proof
 
-    process_proof_args = [
-        args.output,
-        args.split,
-    ]
     filters = MPSelections(args.filter, [], [])
-    print(process_proof_args, filters)
-    mp_iter_libs(
-        process_lib,
-        process_proof_args,
-        n_cpu=args.n_cpu,
-        filters=filters,
-        data_path=args.data_path,
-        proj_splits_file=args.proj_splits_file,
-        mute=args.mute,
-        split=args.split,
-        log_file=args.log,
-    )
+    for split in args.splits:
+        process_proof_args = [
+            args.output,
+            split,
+        ]
+        print(process_proof_args, filters)
+        mp_iter_libs(
+            process_lib,
+            process_proof_args,
+            n_cpu=args.n_cpu,
+            filters=filters,
+            data_path=args.data_path,
+            proj_splits_file=args.proj_splits_file,
+            mute=args.mute,
+            split=split,
+            log_file=args.log,
+        )

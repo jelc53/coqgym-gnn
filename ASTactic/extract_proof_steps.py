@@ -59,7 +59,7 @@ tree_builder = TreeBuilder(grammar)
 
 def tactic2actions(tac_str):
     tree = tree_builder.transform(grammar.parser.parse(tac_str))
-    assert tac_str.replace(" ", "") == tree.to_tokens().replace(" ", "") # type: ignore
+    assert tac_str.replace(" ", "") == tree.to_tokens().replace(" ", "")  # type: ignore
     actions = []
 
     def gather_actions(node):
@@ -69,13 +69,17 @@ def tactic2actions(tac_str):
             assert isinstance(node, TerminalNode)
             actions.append(node.token)
 
-    tree.traverse_pre(gather_actions) # type: ignore
+    tree.traverse_pre(gather_actions)  # type: ignore
     return actions
+
 
 def to_pyg_data(term):
     return Data(x=term["x"], edge_index=term["edge_index"])
 
-def process_proof(project: str, lib: str, proof_data: dict, output: str, split: str):
+
+def process_proof(
+    project: str, file_name: str, proof_data: dict, output: str, split: str
+):
     if "entry_cmds" in proof_data:
         is_synthetic = True
     else:
@@ -83,6 +87,9 @@ def process_proof(project: str, lib: str, proof_data: dict, output: str, split: 
 
     if split != "train" and is_synthetic:
         return
+
+    pos = file_name.find(project)
+    lib_name = file_name[pos + len(project) + 1 :].replace(os.path.sep, "_").split(".")[0]
 
     for i, step in enumerate(proof_data["steps"]):
         # consider only tactics
@@ -104,11 +111,13 @@ def process_proof(project: str, lib: str, proof_data: dict, output: str, split: 
             continue
 
         path_name = os.path.join(
-            output, split, f"{project}-{lib.split('.')[0]}-{proof_data['name']}-{i:08d}"
+            output,
+            split,
+            f"{project}--{lib_name}--{proof_data['name']}-{i:08d}",
         )
 
         path = path_name + ".pt"
-        if os.path.exists(path): # Original path already exists
+        if os.path.exists(path):  # Original path already exists
             print(f"Skipping {path} as it already exists")
             continue
 
@@ -120,7 +129,7 @@ def process_proof(project: str, lib: str, proof_data: dict, output: str, split: 
         local_context, goal = parse_goal(proof_data["goals"][str(goal_id)])
         proof_step = {
             "project": project,
-            "file": lib,
+            "file": file_name,
             "proof_name": proof_data["name"],
             "n_step": i,
             "env": env,
@@ -181,7 +190,9 @@ if __name__ == "__main__":
     # args = arg_parser.parse_args()
     # print(args)
 
-    print("Calling extract proof steps is now deprecated in favor of multiprocessing over process_proof")
+    print(
+        "Calling extract proof steps is now deprecated in favor of multiprocessing over process_proof"
+    )
 
     # filter_file = \
     #     lambda f: f.split(os.path.sep)[2] in \

@@ -278,7 +278,7 @@ def mp_iter_libs(
                 if filters["libs"] and lib not in filters["libs"]:
                     continue
                 to_eval.append((project, lib, j))
-        fn_args = ((p, l, json.load(open(j))["proofs"], *args) for p, l, j in to_eval)
+        fn_args = ((p, j, json.load(open(j))["proofs"], *args) for p, l, j in to_eval)
         map_results = pool.imap(
             partial(_fn_wrapper, fn, kwargs=kwargs),
             fn_args,
