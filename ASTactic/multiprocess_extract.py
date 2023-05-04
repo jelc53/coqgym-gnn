@@ -6,6 +6,7 @@ import multiprocessing as mp
 import subprocess
 import sys
 import os
+from tqdm import tqdm
 
 sys.path.append(
     os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
@@ -136,14 +137,23 @@ def parse_args(argv):
     return args
 
 
-def process_lib(project, file_name, proofs, output, split):
+def process_lib(project, file_name, proofs, output, split, _process_list):
     env = {"constants": [], "inductives": []}
+    id = _process_list.index(os.getpid())
     # Process proof data
+    pbar = tqdm(
+        total=len(proofs),
+        desc=file_name[file_name.find(project) :],
+        position=id + 1,
+        leave=False,
+    )
+    # tqdm.write(f"{id + 1} {file_name[file_name.find(project) :]}", sys.stdout)
     for proof_data in proofs:
         env = update_env(env, proof_data["env_delta"])
         del proof_data["env_delta"]
         proof_data["env"] = env
         process_proof(project, file_name, proof_data, output, split)
+        pbar.update()
 
 
 if __name__ == "__main__":

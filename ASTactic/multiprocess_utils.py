@@ -1,14 +1,17 @@
+import json
 import multiprocessing as mp
 import os
 import sys
-import json
-from tqdm import tqdm
-from pathlib import Path
-from typing import Callable, Iterable, Optional, overload, Tuple
+import time
 from collections import defaultdict
-from itertools import repeat
-from functools import partial
 from copy import deepcopy
+from functools import partial
+from inspect import signature
+from itertools import repeat
+from pathlib import Path
+from typing import Callable, Iterable, Optional, Tuple, overload
+
+from tqdm import tqdm
 
 sys.path.append(
     os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
@@ -17,6 +20,8 @@ sys.path.append(
 from utils import update_env
 
 __all__ = ["mp_iter_proofs", "mp_iter_libs", "MPSelections"]
+
+#! IMPORTANT: Use tqdm.write() for printouts in multiprocessing for thread safety
 
 
 class MPSelections(dict):
@@ -47,6 +52,34 @@ SPLIT_CONVERSION = {
     "valid": "projs_valid",
     "test": "projs_test",
 }
+
+
+def filter_projects(proj_splits_file, split, filters, skips):
+    splits = json.load(open(proj_splits_file))
+    if split is not None:
+        if split not in SPLIT_CONVERSION:
+            raise ValueError(
+                f"Invalid split {split}. Must be one of {list(splits.keys())}"
+            )
+        projects = splits[SPLIT_CONVERSION[split]]
+    else:
+        projects = [project for split in splits.values() for project in split]
+    # Filter projects if there are project filters but no lib or proof filters
+    if filters["projects"] and (not filters["libs"] or not filters["proofs"]):
+        projects = [p for p in projects if p in filters["projects"]]
+    # Filter all skipped projects
+    projects = [p for p in projects if p not in skips["projects"]]
+    return projects
+
+
+def get_init(log_file, mute):
+    init = None
+    if log_file:
+        init = _init
+    elif mute:
+        init = _init
+        log_file = os.devnull
+    return init
 
 
 @overload
@@ -88,7 +121,6 @@ def mp_iter_proofs(
     ...
 
 
-# TODO: Add callbacks on library and project level
 def mp_iter_proofs(
     fn: Callable,
     args: Iterable = [],
@@ -108,6 +140,8 @@ def mp_iter_proofs(
 ):
     """
     Applies `fn(project, library, proof_data, *args, **kwargs)` in parallel using multiprocessing. Can whitelist/blacklist projects, proof files (libs), and individual proofs.
+
+    List of process IDs is stored in an optional kwarg '_process_list' in kwargs. This can be used to uniquely identify each process running in parallel
 
     Filters and skips are a dictionary of the form:
         {
@@ -133,35 +167,20 @@ def mp_iter_proofs(
         ...
     }
     """
-
-    def _mute():
-        sys.stdout = open(os.devnull, "w")
-
-    def _log():
-        sys.stdout = open(log_file, "w")
-
     out = defaultdict(lambda: defaultdict(dict))
-    splits = json.load(open(proj_splits_file))
-    if split is not None:
-        if split not in SPLIT_CONVERSION:
-            raise ValueError(
-                f"Invalid split {split}. Must be one of {list(splits.keys())}"
-            )
-        projects = splits[SPLIT_CONVERSION[split]]
-    projects = [project for split in splits.values() for project in split]
-    # Filter projects if there are project filters but no lib or proof filters
-    if filters["projects"] and (not filters["libs"] or not filters["proofs"]):
-        projects = [p for p in projects if p in filters["projects"]]
-    projects = [p for p in projects if p not in skips["projects"]]
     proj_callback_results = defaultdict()
-    init = None
-    if log_file:
-        init = _log
-    elif mute:
-        init = _mute
-    with mp.Pool(n_cpu, initializer=init) as pool:
+
+    projects = filter_projects(proj_splits_file, split, filters, skips)
+    init = get_init(log_file, mute)
+    tqdm.set_lock(mp.Lock())
+    with mp.Pool(n_cpu, initializer=init, initargs=(tqdm.get_lock(), log_file)) as pool:
+        process_list = [c.pid for c in mp.active_children()]
+        extras = dict(
+            _process_list=process_list,
+        )
+        # TODO: Rewrite this as a generator outputting (project, lib, proof_data, *args, **kwargs)
         # Load all async tasks (assumes all proofs can be loaded into memory)
-        for project in tqdm(projects, desc=f"{fn.__name__} Total", position=1):
+        for project in tqdm(projects, desc=f"{fn.__name__} Projects", position=1):
             for j in tqdm(
                 list(str(p) for p in (Path(data_path) / project).glob("**/*.json")),
                 desc=project,
@@ -179,7 +198,7 @@ def mp_iter_proofs(
                 for proof_data in proofs:
                     env = update_env(env, proof_data["env_delta"])
                     del proof_data["env_delta"]
-                    proof_data["env"] = deepcopy(env)
+                    proof_data["env"] = json.loads(json.dumps(env))
                     # Filters
                     if (
                         filters["proofs"]
@@ -192,7 +211,7 @@ def mp_iter_proofs(
                     run_proofs.append(proof_data)
 
                 fn_args = (
-                    (project, lib, proof_data, *args) for proof_data in run_proofs
+                    (project, j, proof_data, *args) for proof_data in run_proofs
                 )
                 r = pool.starmap_async(
                     _fn_wrapper,
@@ -200,10 +219,11 @@ def mp_iter_proofs(
                         repeat(fn),
                         fn_args,
                         repeat(kwargs),
+                        repeat(extras),
                     ),
                 )
-                for proof_data, result in zip(run_proofs, r.get()):
-                    out[project][lib][proof_data["name"]] = result
+                for proof_data, (result, p, f) in zip(run_proofs, r.get()):
+                    out[p][f][proof_data["name"]] = result
                 if proj_callback is not None:
                     if proj_callback_args is None:
                         proj_callback_args = []
@@ -218,8 +238,57 @@ def mp_iter_proofs(
     return dict(out)
 
 
-def _fn_wrapper(fn, args, kwargs):
-    return fn(*args, **kwargs)
+def _fn_wrapper(fn, args, kwargs, all_extras):
+    sig = signature(fn)
+    p, j = args[:2]
+    extras = {k: v for k, v in all_extras.items() if k in sig.parameters}
+    if extras:
+        return fn(*args, **kwargs, **extras)
+    return fn(*args, **kwargs), p, j
+
+
+def _init(lock, log_file):
+    sys.stdout = open(log_file, "w")
+    tqdm.set_lock(lock)
+
+
+@overload
+def mp_iter_libs(
+    fn: Callable,
+    args: Iterable = [],
+    kwargs: dict = {},
+    *,  # Force keyword-only arguments
+    split: Optional[str] = None,
+    filters: dict = DEFAULT_FILTERS,
+    skips: dict = DEFAULT_SKIPS,
+    mute: bool = False,
+    n_cpu: int = mp.cpu_count(),
+    proj_splits_file: str = "../projs_split.json",
+    data_path: str = "../data",
+    log_file: str = "",
+) -> dict:
+    ...
+
+
+@overload
+def mp_iter_libs(
+    fn: Callable,
+    args: Iterable = [],
+    kwargs: dict = {},
+    proj_callback: Callable = ...,
+    proj_callback_args: Iterable = ...,
+    proj_callback_kwargs: dict = ...,
+    *,  # Force keyword-only arguments
+    split: Optional[str] = None,
+    filters: dict = DEFAULT_FILTERS,
+    skips: dict = DEFAULT_SKIPS,
+    mute: bool = False,
+    n_cpu: int = mp.cpu_count(),
+    proj_splits_file: str = "../projs_split.json",
+    data_path: str = "../data",
+    log_file: str = "",
+) -> Tuple[dict, dict]:
+    ...
 
 
 def mp_iter_libs(
@@ -239,65 +308,64 @@ def mp_iter_libs(
     data_path: str = "../data",
     log_file: str = "",
 ):
-    def _mute():
-        sys.stdout = open(os.devnull, "w")
-
-    def _log():
-        sys.stdout = open(log_file, "w")
-
-    results = defaultdict(dict)
     out = defaultdict(dict)
-    splits = json.load(open(proj_splits_file))
-    if split is not None:
-        if split not in SPLIT_CONVERSION:
-            raise ValueError(
-                f"Invalid split {split}. Must be one of {list(splits.keys())}"
-            )
-        projects = splits[SPLIT_CONVERSION[split]]
-    projects = [project for split in splits.values() for project in split]
-    # Filter projects if there are project filters but no lib or proof filters
-    if filters["projects"] and not filters["libs"]:
-        projects = [p for p in projects if p in filters["projects"]]
-    projects = [p for p in projects if p not in skips["projects"]]
     proj_callback_results = defaultdict()
-    init = None
-    if log_file:
-        init = _log
-    elif mute:
-        init = _mute
-    with mp.Pool(n_cpu, initializer=init) as pool:
+
+    projects = filter_projects(proj_splits_file, split, filters, skips)
+    init = get_init(log_file, mute)
+    tqdm.set_lock(mp.Lock())
+    with mp.Pool(n_cpu, initializer=init, initargs=(tqdm.get_lock(), log_file)) as pool:
+        process_list = [c.pid for c in mp.active_children()]
+        print(process_list)
+        extras = dict(
+            _process_list=process_list,
+        )
         # Load all async tasks (assumes all proofs can be loaded into memory)
         to_eval = []
-        for project in tqdm(projects, desc=f"{fn.__name__} Loading...", position=0):
+        start = time.time()
+        skipped = 0
+        for project in tqdm(
+            projects, desc=f"{fn.__name__} Loading...", position=0, leave=False
+        ):
             for j in list(
                 str(p) for p in (Path(data_path) / project).glob("**/*.json")
             ):
                 lib = j.split(os.path.sep)[-1]
                 if lib in skips["libs"]:
+                    skipped += 1
                     continue
                 if filters["libs"] and lib not in filters["libs"]:
+                    skipped += 1
                     continue
                 to_eval.append((project, lib, j))
         fn_args = ((p, j, json.load(open(j))["proofs"], *args) for p, l, j in to_eval)
-        map_results = pool.imap(
-            partial(_fn_wrapper, fn, kwargs=kwargs),
+        # Start mapping
+        map_results = pool.imap_unordered(
+            partial(_fn_wrapper, fn, kwargs=kwargs, all_extras=extras),
             fn_args,
         )
-        for (project, lib, _), result in tqdm(
-            zip(to_eval, map_results), total=len(to_eval), desc="Results", position=0
-        ):
-            out[project][lib] = result
+        results_pbar = tqdm(
+            total=len(to_eval), desc=f"Gathering Results", position=0, leave=False
+        )
+        # Collect results
+        for result, project, j in map_results:
+            out[project][j] = result
+            results_pbar.update()
         # Process callbacks
         if proj_callback is not None:
-            for project, lib_dict in tqdm(results.items()):
-                for lib, result in lib_dict.items():
-                    if proj_callback_args is None:
-                        proj_callback_args = []
-                    if proj_callback_kwargs is None:
-                        proj_callback_kwargs = {}
-                    proj_callback_results[project] = proj_callback(
-                        out[project], *proj_callback_args, **proj_callback_kwargs
-                    )
+            for project, lib_dict in tqdm(out.items(), desc="Project Callback"):
+                if proj_callback_args is None:
+                    proj_callback_args = []
+                if proj_callback_kwargs is None:
+                    proj_callback_kwargs = {}
+                proj_callback_results[project] = proj_callback(
+                    lib_dict, *proj_callback_args, **proj_callback_kwargs
+                )
+    print(f"Summary for multiprocessing {fn.__name__} on all libraries:")
+    print(f"\tTotal time: {time.time() - start} seconds")
+    print(f"\tTotal number of projects processed: {len(out)}")
+    print(f"\tTotal number of libraries processed: {len(to_eval)}")
+    print(f"\tTotal number of libraries skipped: {len(skips['libs'])}")
 
     if proj_callback is not None:
         return dict(out), dict(proj_callback_results)
@@ -305,7 +373,6 @@ def mp_iter_libs(
 
 
 if __name__ == "__main__":
-    import time
 
     def print_name(proj, lib, proof, *args, **kwargs):
         print(proof["name"], args, kwargs)
@@ -329,5 +396,5 @@ if __name__ == "__main__":
     }
     kwargs = {"a": 1, "b": 2}
     # mp_iter_proofs(print_name, filters=filter)
-    result = mp_iter_proofs(print_name, kwargs=kwargs, filters=filter, n_cpu=12)
+    result = mp_iter_proofs(print_name, kwargs=kwargs, filters=filter, n_cpu=6)
     print(result)

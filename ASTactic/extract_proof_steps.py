@@ -10,6 +10,7 @@ import json
 import os
 import sys
 from glob import glob
+from tqdm import tqdm
 
 
 sys.setrecursionlimit(100000)
@@ -89,7 +90,9 @@ def process_proof(
         return
 
     pos = file_name.find(project)
-    lib_name = file_name[pos + len(project) + 1 :].replace(os.path.sep, "_").split(".")[0]
+    lib_name = (
+        file_name[pos + len(project) + 1 :].replace(os.path.sep, "_").split(".")[0]
+    )
 
     for i, step in enumerate(proof_data["steps"]):
         # consider only tactics
@@ -118,7 +121,7 @@ def process_proof(
 
         path = path_name + ".pt"
         if os.path.exists(path):  # Original path already exists
-            print(f"Skipping {path} as it already exists")
+            tqdm.write(f"Skipping {path} as it already exists", sys.stdout)
             continue
 
         assert step["command"][1] == "VernacExtend"
