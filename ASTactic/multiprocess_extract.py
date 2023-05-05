@@ -163,7 +163,7 @@ if __name__ == "__main__":
     from multiprocess_utils import MPSelections, mp_iter_libs
     from extract_proof_steps import process_proof
 
-    filters = MPSelections(args.filter, [], [])
+    filters = MPSelections(args.filter)
     for split in args.splits:
         process_proof_args = [
             args.output,
