@@ -121,8 +121,12 @@ def process_proof(
 
         path = path_name + ".pt"
         if os.path.exists(path):  # Original path already exists
-            tqdm.write(f"Skipping {path} as it already exists", sys.stdout)
-            continue
+            try:
+                torch.load(path)
+                tqdm.write(f"Skipping {path} as it already exists", sys.stdout)
+                continue
+            except:
+                tqdm.write(f"Replacing {path} as it is corrupted", sys.stderr)
 
         assert step["command"][1] == "VernacExtend"
         assert step["command"][0].endswith(".")
