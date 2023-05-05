@@ -151,9 +151,9 @@ def mp_iter_proofs(
         }
 
     Filtering is applied AND-wise (i.e. take all projects in filters["projects"] AND all libs in filters["libs"] AND all proofs in filters["proofs"])
-    THEN, apply all skips AND-wise.
+    THEN, apply all skips AND-wise (i.e. skip all projects in skips["projects"] AND all libs in skips["libs"] AND all proofs in skips["proofs"])
 
-    Project callback is applied after obtaining results from all proofs in a project. It is of the form:
+    Project callback is applied after obtaining results from all proofs in a project.
 
     Output is of the form:
     {
@@ -210,9 +210,7 @@ def mp_iter_proofs(
                         continue
                     run_proofs.append(proof_data)
 
-                fn_args = (
-                    (project, j, proof_data, *args) for proof_data in run_proofs
-                )
+                fn_args = ((project, j, proof_data, *args) for proof_data in run_proofs)
                 r = pool.starmap_async(
                     _fn_wrapper,
                     zip(
@@ -243,7 +241,7 @@ def _fn_wrapper(fn, args, kwargs, all_extras):
     p, j = args[:2]
     extras = {k: v for k, v in all_extras.items() if k in sig.parameters}
     if extras:
-        return fn(*args, **kwargs, **extras)
+        return fn(*args, **kwargs, **extras), p, j
     return fn(*args, **kwargs), p, j
 
 
@@ -340,15 +338,14 @@ def mp_iter_libs(
                 to_eval.append((project, lib, j))
         fn_args = ((p, j, json.load(open(j))["proofs"], *args) for p, l, j in to_eval)
         # Start mapping
-        map_results = pool.imap_unordered(
-            partial(_fn_wrapper, fn, kwargs=kwargs, all_extras=extras),
-            fn_args,
-        )
         results_pbar = tqdm(
             total=len(to_eval), desc=f"Gathering Results", position=0, leave=False
         )
         # Collect results
-        for result, project, j in map_results:
+        for result, project, j in pool.imap_unordered(
+            partial(_fn_wrapper, fn, kwargs=kwargs, all_extras=extras),
+            fn_args,
+        ):
             out[project][j] = result
             results_pbar.update()
         # Process callbacks
@@ -361,7 +358,7 @@ def mp_iter_libs(
                 proj_callback_results[project] = proj_callback(
                     lib_dict, *proj_callback_args, **proj_callback_kwargs
                 )
-    print(f"Summary for multiprocessing {fn.__name__} on all libraries:")
+    print(f"\nSummary for multiprocessing {fn.__name__} on all libraries:")
     print(f"\tTotal time: {time.time() - start} seconds")
     print(f"\tTotal number of projects processed: {len(out)}")
     print(f"\tTotal number of libraries processed: {len(to_eval)}")

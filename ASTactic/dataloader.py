@@ -26,19 +26,29 @@ class ProofStepsData(Dataset):
         if split in ["train", "valid"]:
             proof_steps = glob(os.path.join(opts.datapath, split, "*.pt"))
         elif split == "train_valid":
-            proof_steps = glob(
-                os.path.join(opts.datapath, "train/*.pt")
-            ) + glob(os.path.join(opts.datapath, "valid/*.pt"))
+            proof_steps = glob(os.path.join(opts.datapath, "train/*.pt")) + glob(
+                os.path.join(opts.datapath, "valid/*.pt")
+            )
         else:
             raise ValueError("Invalid split")
         # Assuming proof steps are named as "project-proof-####.pt"
         # Filter out skipped proofs
         self.proof_steps = []
         for step in proof_steps:
-            matches = re.match(r"([a-zA-Z0-9_-]+)-([a-zA-Z0-9_]+)-[0-9-]{8,}.pt", step.split(os.path.sep)[-1])
-            if not matches: continue
+            matches = re.match(
+                r"([^.]+)--([^.]+)--([^.]+)-[0-9]{8,}.pt",
+                step.split(os.path.sep)[-1],
+            )
+            if not matches:
+                print(step)
+                continue
             # Check for filters
-            if matches[1] in opts.skip_projects or matches[2] in opts.skip_proofs: continue
+            if (
+                matches[1] in opts.skip_projects
+                or matches[2] in opts.skip_libs
+                or matches[3] in opts.skip_proofs
+            ):
+                continue
             self.proof_steps.append(step)
 
         random.shuffle(self.proof_steps)
@@ -79,7 +89,11 @@ class ProofStepsData(Dataset):
             'tactic_str': STR,
         }
         """
-        data = torch.load(self.proof_steps[idx])
+        try:
+            data = torch.load(self.proof_steps[idx])
+        except:
+            print("Error loading proof step %s" % self.proof_steps[idx])
+            raise
         return data
 
     def get(self, idx):
@@ -109,10 +123,10 @@ def merge(batch_list):
         batch[k] = v
     return batch
 
-def create_dataloader(split, opts):
 
+def create_dataloader(split, opts):
     ds = ProofStepsData(split, opts)
-    return DataLoader( # Use original pytorch data loader since we want to define custom collate_fn
+    return DataLoader(  # Use original pytorch data loader since we want to define custom collate_fn
         ds,
         opts.batchsize,
         shuffle=split.startswith("train"),
@@ -122,11 +136,22 @@ def create_dataloader(split, opts):
 
 
 if __name__ == "__main__":
+    import json
+
     opts = parse_args()
     loader = create_dataloader("train", opts)
     bar = ProgressBar(max_value=len(loader))
+    num_tactics_with_goal_idents = 0
+    idents_per_goal = defaultdict(int)
     for i, data_batch in enumerate(loader):
         if i == 0:
             print(data_batch)
             # pickle.dump(data_batch, open("data_batch.pickle", "wb"))
+        for goal, tactic_str in zip(data_batch.goal, data_batch.tactic_str):
+            idents_per_goal[len(goal["idents"])] += 1
+            for ident in goal["idents"]:
+                if ident[1] in set(tactic_str.split(" ")):
+                    num_tactics_with_goal_idents += 1
         bar.update(i)
+    print(idents_per_goal)
+    json.dump(idents_per_goal, open("idents_per_goal.json", "w"))
