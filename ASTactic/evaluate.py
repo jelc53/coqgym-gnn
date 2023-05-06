@@ -124,13 +124,18 @@ if __name__ == "__main__":
     if opts.skip and os.path.exists(opts.skip):
         skip_df = pd.read_csv(opts.skip)
         if any(field not in skip_df for field in ["project", "lib", "proof"]):
-            log("Invalid skip csv, skipping nothing. Requires columns: project, lib, proof", "WARNING")
+            log(
+                "Invalid skip csv, skipping nothing. Requires columns: project, lib, proof",
+                "WARNING",
+            )
         else:
             skip_projects = skip_df[skip_df["project"].notnull()]["project"].to_list()
             skip_libs = skip_df[skip_df["lib"].notnull()]["lib"].to_list()
             opts.skip_proofs = skip_df[skip_df["proof"].notnull()]["proof"].to_list()
 
-    files = [f for f in files
+    files = [
+        f
+        for f in files
         if (opts.filter and opts.filter == f.split(os.path.sep)[2])
         and (f.split(os.path.sep)[2] not in skip_projects)
         and (f.split(os.path.sep)[-1] not in skip_libs)
@@ -154,25 +159,31 @@ if __name__ == "__main__":
         os.makedirs(oup_dir)
     if not os.path.exists(err_dir):
         os.mkdir(err_dir)
-    if opts.filter is None and opts.file is None and not skip_projects and not skip_libs:
+    if (
+        opts.filter is None
+        and opts.file is None
+        and not skip_projects
+        and not skip_libs
+    ):
         oup_file = os.path.join(oup_dir, "results.json")
         err_file = os.path.join(err_dir, "errors.json")
-    else: # Same file names
+    else:  # Same file names
         if opts.file is None:
             file_name = "%s" % opts.filter
         elif opts.proof is None:
-            file_name = "%s" \
+            file_name = (
+                "%s"
                 % os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
                     os.path.sep, "-"
                 )[:-5]
+            )
         else:
-            file_name = "%s-%s" \
-                % (
-                    os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
-                        os.path.sep, "-"
-                    )[:-5],
-                    opts.proof,
-                )
+            file_name = "%s-%s" % (
+                os.path.sep.join(opts.file.split(os.path.sep)[2:]).replace(
+                    os.path.sep, "-"
+                )[:-5],
+                opts.proof,
+            )
         if opts.skip:
             file_name += f"-{opts.skip.split(os.path.sep)[-1].split('.')[0]}"
         file_name += ".json"

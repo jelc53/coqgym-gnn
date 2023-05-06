@@ -14,6 +14,7 @@ import pdb
 from hashlib import sha1
 import gc
 from copy import deepcopy
+from tqdm import tqdm
 from time import time
 
 from models.gnn_utils import create_edge_index, create_x
@@ -63,7 +64,7 @@ def parse_goal(g):
         "ast": goal_ast,
         "x": x,
         "idents": idents,
-        "edge_index": create_edge_index(goal_ast)
+        "edge_index": create_edge_index(goal_ast),
     }
     local_context = []
     for i, h in enumerate(g["hypotheses"]):
@@ -79,6 +80,7 @@ def parse_goal(g):
                 }
             )
     return local_context, goal
+
 
 def print_single_goal(g):
     for h in g["hypotheses"]:
@@ -194,7 +196,7 @@ class Agent:
         log("validation accuracy: %f" % acc)
         return loss_avg
 
-    def evaluate(self, filename, proof_name=None):
+    def evaluate(self, filename, proof_name=None, _process_list=[os.getpid()]):
         if self.model is not None:
             self.model.eval()
 
@@ -216,7 +218,7 @@ class Agent:
             if "ours" in self.opts.method
             else self.opts.timeout
         )
-
+        id = _process_list.index(os.getpid())
         with FileEnv(
             filename,
             self.opts.max_num_tactics,
@@ -226,10 +228,14 @@ class Agent:
         ) as file_env:
             results = []
             errors = []
-            for proof_env in file_env:  # start a proof
+            for proof_env in tqdm(
+                file_env, position=id + 1, desc=filename, leave=False
+            ):  # start a proof
+                print(proof_env.proof["name"])
                 try:
-                    if (proof_name is not None and proof_env.proof["name"] != proof_name)\
-                        or proof_env.proof["name"] in self.opts.skip_proofs:
+                    if (
+                        proof_name is not None and proof_env.proof["name"] != proof_name
+                    ) or proof_env.proof["name"] in self.opts.skip_proofs:
                         continue
                     print("proof: ", proof_env.proof["name"])
                     # print('cuda memory allocated before proof: ', torch.cuda.memory_allocated(self.opts.device), file=sys.stderr)
@@ -252,25 +258,29 @@ class Agent:
                     if proof_name is not None:
                         break
                 except Exception as e:
-                    results.append({
-                        "filename": filename,
-                        "proof_name": proof_env.proof["name"],
-                        "success": False,
-                        "proof_gt": [
-                            step["command"][0]
+                    results.append(
+                        {
+                            "filename": filename,
+                            "proof_name": proof_env.proof["name"],
+                            "success": False,
+                            "proof_gt": [
+                                step["command"][0]
                                 for step in proof_env.proof["steps"]
                                 if step["command"][1] != "VernacEndProof"
                             ],
-                        "proof_pred": [],
-                        "time": self.opts.timeout,
-                        "num_tactics": 0,
-                    })
+                            "proof_pred": [],
+                            "time": self.opts.timeout,
+                            "num_tactics": 0,
+                        }
+                    )
                     # Save log of error
-                    errors.append({
-                        "filename": filename,
-                        "proof_name": proof_env.proof["name"],
-                        "error": str(e),
-                    })
+                    errors.append(
+                        {
+                            "filename": filename,
+                            "proof_name": proof_env.proof["name"],
+                            "error": str(e),
+                        }
+                    )
                 del proof_env
                 gc.collect()
         return results, errors

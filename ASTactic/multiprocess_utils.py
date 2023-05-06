@@ -79,7 +79,7 @@ def get_init(log_file, mute):
     elif mute:
         init = _init
         log_file = os.devnull
-    return init
+    return init, log_file
 
 
 @overload
@@ -171,7 +171,7 @@ def mp_iter_proofs(
     proj_callback_results = defaultdict()
 
     projects = filter_projects(proj_splits_file, split, filters, skips)
-    init = get_init(log_file, mute)
+    init, log_file = get_init(log_file, mute)
     tqdm.set_lock(mp.Lock())
     with mp.Pool(n_cpu, initializer=init, initargs=(tqdm.get_lock(), log_file)) as pool:
         process_list = [c.pid for c in mp.active_children()]
@@ -310,7 +310,7 @@ def mp_iter_libs(
     proj_callback_results = defaultdict()
 
     projects = filter_projects(proj_splits_file, split, filters, skips)
-    init = get_init(log_file, mute)
+    init, log_file = get_init(log_file, mute)
     tqdm.set_lock(mp.Lock())
     with mp.Pool(n_cpu, initializer=init, initargs=(tqdm.get_lock(), log_file)) as pool:
         process_list = [c.pid for c in mp.active_children()]
