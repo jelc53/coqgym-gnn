@@ -173,6 +173,11 @@ def parse_args():
             skip_libs = skip_df[skip_df["lib"].notnull()]["lib"].to_list()
             args.skip_proofs = skip_df[skip_df["proof"].notnull()]["proof"].to_list()
 
+    args.skip_projects = skip_projects
+    args.skip_libs = skip_libs
+    print("skip projects:", args.skip_projects)
+    print("skip libs:", args.skip_libs)
+    print("skip proofs:", args.skip_proofs)
     return args
 
 
@@ -191,7 +196,12 @@ def evaluate_wrapper(project, filename, _, args, _process_list):
         model = None
 
     agent = Agent(model, None, None, args)
-    return agent.evaluate(filename, _process_list=_process_list)
+    try:
+        return agent.evaluate(filename, _process_list=_process_list)
+    except Exception as e:
+        tqdm.write(f"Error in {filename}", sys.stderr)
+        tqdm.write(str(e), sys.stderr)
+        raise
 
 
 def project_level_aggregation_wrapper(file_results):
@@ -205,6 +215,7 @@ def project_level_aggregation_wrapper(file_results):
 
 def main(args):
     filters = MPSelections([args.filter])
+    skips = MPSelections(args.skip_projects, args.skip_libs)
 
     # Multiprocess over proofs
     _, proj_level_results = mp_iter_libs(
@@ -214,6 +225,7 @@ def main(args):
         project_level_aggregation_wrapper,
         split=args.split,
         filters=filters,
+        skips=skips,
         n_cpu=args.n_cpu,
         # log_file="mp_test.log",
         mute=True,

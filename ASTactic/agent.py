@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import os
+import sys
 from gallina import GallinaTermParser
 from utils import SexpCache, log
 from eval_env import FileEnv
@@ -231,7 +232,6 @@ class Agent:
             for proof_env in tqdm(
                 file_env, position=id + 1, desc=filename, leave=False
             ):  # start a proof
-                print(proof_env.proof["name"])
                 try:
                     if (
                         proof_name is not None and proof_env.proof["name"] != proof_name
@@ -258,6 +258,10 @@ class Agent:
                     if proof_name is not None:
                         break
                 except Exception as e:
+                    tqdm.write(
+                        f"error in {filename}::{proof_env.proof['name']}: {e}",
+                        sys.stderr,
+                    )
                     results.append(
                         {
                             "filename": filename,

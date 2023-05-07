@@ -328,7 +328,7 @@ def mp_iter_libs(
             for j in list(
                 str(p) for p in (Path(data_path) / project).glob("**/*.json")
             ):
-                lib = j.split(os.path.sep)[-1]
+                lib = j[j.find(project) + len(project) + 1 :]
                 if lib in skips["libs"]:
                     skipped += 1
                     continue
