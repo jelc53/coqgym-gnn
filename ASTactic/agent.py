@@ -15,6 +15,7 @@ from hashlib import sha1
 import gc
 from copy import deepcopy
 from time import time
+from tqdm import tqdm
 
 
 def action_seq_loss(logits_batch, actions_batch, opts):
@@ -176,7 +177,7 @@ class Agent:
         log("validation accuracy: %f" % acc)
         return loss_avg
 
-    def evaluate(self, filename, proof_name=None):
+    def evaluate(self, filename, proof_name=None, _process_list=[os.getpid()]):
         if self.model is not None:
             self.model.eval()
 
@@ -208,7 +209,12 @@ class Agent:
         ) as file_env:
             results = []
             errors = []
-            for proof_env in file_env:  # start a proof
+            idx = _process_list.index(os.getpid())
+            for proof_env in tqdm(
+                file_env,
+                desc=filename,
+                position=idx + 1,
+            ):  # start a proof
                 try:
                     if proof_name is not None and proof_env.proof["name"] != proof_name:
                         continue
@@ -233,25 +239,29 @@ class Agent:
                     if proof_name is not None:
                         break
                 except Exception as e:
-                    results.append({
-                        "filename": filename,
-                        "proof_name": proof_env.proof["name"],
-                        "success": False,
-                        "proof_gt": [
-                            step["command"][0]
+                    results.append(
+                        {
+                            "filename": filename,
+                            "proof_name": proof_env.proof["name"],
+                            "success": False,
+                            "proof_gt": [
+                                step["command"][0]
                                 for step in proof_env.proof["step"]
                                 if step["command"][1] != "VernacEndProof"
-                        ],
-                        "proof_pred": [],
-                        "time": self.opts.timeout,
-                        "num_tactics": 0,
-                    })
+                            ],
+                            "proof_pred": [],
+                            "time": self.opts.timeout,
+                            "num_tactics": 0,
+                        }
+                    )
                     # save log of error
-                    errors.append({
-                        "filename": filename,
-                        "proof_name": proof_env.proof["name"],
-                        "error": str(e),
-                    })
+                    errors.append(
+                        {
+                            "filename": filename,
+                            "proof_name": proof_env.proof["name"],
+                            "error": str(e),
+                        }
+                    )
         return results, errors
 
     def prove_one_tactic(self, proof_env, tac):
