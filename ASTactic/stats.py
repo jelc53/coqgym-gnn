@@ -30,7 +30,9 @@ def collect(projects, n_cpu):
                 ):
                     with open(j) as f:
                         proofs = json.load(f)["proofs"]
-                        d[j.name] = dict(pool.map(stats, proofs))
+                        d[str(j)[str(j).find(project) + len(project) + 1 :]] = dict(
+                            pool.map(stats, proofs)
+                        )
                 with open(pkl, "wb") as f:
                     pickle.dump(d, f)
 
