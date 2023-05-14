@@ -80,12 +80,6 @@ def stats(proof):
     return proof["name"], {"steps": steps, "env": env}
 
 
-def analyze(dir, n_cpu=mp.cpu_count()):
-    with mp.Pool(n_cpu) as pool:
-        results = pool.map(analyze_project, Path(dir).glob("*.pkl"))
-    return pd.DataFrame(it.chain(*results))
-
-
 def analyze_project(path):
     with open(path, "rb") as f:
         project = pickle.load(f)
@@ -95,6 +89,24 @@ def analyze_project(path):
             # TODO(danj): wtf is going on with the env
             summary = summarize(d["steps"])
             v += [{"project": path.stem, "lib": lib, "proof": name, **summary}]
+    return v
+
+
+def tfidf_corpus(path):
+    with open(path, "rb") as f:
+        project = pickle.load(f)
+    v = []
+    for lib, proofs in project.items():
+        for name, d in proofs.items():
+            if d["steps"] == [] or "tactic_str" not in d["steps"][0]:
+                summary = {"proof_tactic_str": "99"}
+            else:
+                summary = {
+                    "proof_tactic_str": ' '.join(
+                        [step["tactic_str"] for step in d["steps"]]
+                    )
+                }
+            v += [{"project": path.stem, "lib": lib, "proof": name, **summary}] 
     return v
 
 
@@ -173,6 +185,12 @@ def summarize(steps):
     return {"n_steps": len(steps), **h_d, **n_d, **used_tactics}
 
 
+def analyze(dir, n_cpu=mp.cpu_count(), func=analyze_project):
+    with mp.Pool(n_cpu) as pool:
+        results = pool.map(func, Path(dir).glob("*.pkl"))
+    return pd.DataFrame(it.chain(*results))
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog=argv[0], formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -194,6 +212,12 @@ def parse_args(argv):
     analyze.add_argument(
         "-d", "--dir", help="directory with pickled stats", default="../data"
     )
+    tf_idf = cmd.add_parser(
+        "tf-idf", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    tf_idf.add_argument(
+        "-d", "--dir", help="directory with pickled stats", default="../data"
+    )
     return parser.parse_args(argv[1:])
 
 
@@ -202,5 +226,9 @@ if __name__ == "__main__":
     if args.command == "collect":
         collect(args.projects, args.n_cpu)
     elif args.command == "analyze":
-        df = analyze(args.dir, args.n_cpu)
+        df = analyze(args.dir, args.n_cpu, analyze_project)
         df.to_csv("stats.csv", index=False)
+    elif args.command == "tf-idf":
+        corpus = analyze(args.dir, args.n_cpu, tfidf_corpus)
+        with open('corpus.pkl', 'wb') as f:
+            pickle.dump(corpus, f)
