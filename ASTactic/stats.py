@@ -11,6 +11,7 @@ import pandas as pd
 import pickle
 import sys
 
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from extract_proof_steps import parse_goal, filter_env, tactic2actions
 
 
@@ -106,7 +107,27 @@ def tfidf_corpus(path):
                         [step["tactic_str"] for step in d["steps"]]
                     )
                 }
-            v += [{"project": path.stem, "lib": lib, "proof": name, **summary}] 
+            v += [{"project": path.stem, "lib": lib, "proof": name, **summary}]
+    return v
+
+
+def tfidf_corpus_pstep(path):
+    with open(path, "rb") as f:
+        project = pickle.load(f)
+    v = []
+    for lib, proofs in project.items():
+        for name, d in proofs.items():
+            if d["steps"] == [] or "tactic_str" not in d["steps"][0]:
+                continue
+                #summary = {"proof_tactic_str": "99"}
+            else:
+                count = 0
+                for step in d["steps"]:
+                    summary = {"proof_tactic_str": step["tactic_str"]}
+                    n_terms = {'n_env': len(d['env']), 'n_lc': len(step['local_context']), 'n_goal': 1}
+                    v += [{"project": path.stem, "lib": lib, "proof": name, "step": count,  **n_terms, **summary}]
+                    count += 1
+
     return v
 
 
@@ -218,6 +239,7 @@ def parse_args(argv):
     tf_idf.add_argument(
         "-d", "--dir", help="directory with pickled stats", default="../data"
     )
+    tf_idf.add_argument("--step", action="store_true")
     return parser.parse_args(argv[1:])
 
 
@@ -229,6 +251,11 @@ if __name__ == "__main__":
         df = analyze(args.dir, args.n_cpu, analyze_project)
         df.to_csv("stats.csv", index=False)
     elif args.command == "tf-idf":
-        corpus = analyze(args.dir, args.n_cpu, tfidf_corpus)
-        with open('corpus.pkl', 'wb') as f:
-            pickle.dump(corpus, f)
+        if args.step:
+            corpus = analyze(args.dir, args.n_cpu, tfidf_corpus_pstep)
+            with open('corpus_proof_step.pkl', 'wb') as f:
+                pickle.dump(corpus, f)
+        else:
+            corpus = analyze(args.dir, args.n_cpu, tfidf_corpus)
+            with open('corpus_proof.pkl', 'wb') as f:
+                pickle.dump(corpus, f)
